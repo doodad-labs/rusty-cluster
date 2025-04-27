@@ -75,7 +75,7 @@
                         min: 0, // Fix baseline at 0 for consistency
                         max: Math.min(
                             Math.max(...host.currentLoad.map((cpu) => cpu[0])) +
-                                5,
+                                8,
                             105,
                         ), // Match your max value (or use dynamic max)
                     },

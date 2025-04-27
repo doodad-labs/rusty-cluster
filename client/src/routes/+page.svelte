@@ -3,7 +3,7 @@
     import type { Socket } from "socket.io-client";
     import { onMount } from "svelte";
 
-    const HISTORY_LENGTH = 150;
+    const HISTORY_LENGTH = 50;
 
     const hostAddress = [
         "192.168.1.102:3000",

@@ -1,19 +1,28 @@
 import sysinfo from 'systeminformation';
-import Fastify from 'fastify'
+import { createServer } from 'node:http';
+import { Server } from 'socket.io';
 
-const fastify = Fastify({
-    logger: true
-})
+const server = createServer();
+const io = new Server(server);
 
-fastify.get('/', async (request, reply) => {
-    reply.type('application/json').code(200)
-    return await sysinfo.currentLoad()
-})
+io.on('connection', (socket) => {
+    
+    console.log('user connected'); // Log when a user connects
 
-fastify.listen({ port: 3000, host: '0.0.0.0' }, function (err, address) {
-    if (err) {
-        fastify.log.error(err)
-        process.exit(1)
-    }
-    fastify.log.info(`server listening on ${address}`)
-})
+    // Join the 'cpu' room to receive CPU usage data
+    socket.join('cpu');
+
+    socket.on('disconnect', () => {
+        // Log when a user disconnects
+        console.log('user disconnected');
+    });
+});
+
+const cpuInterval = setInterval(() => {
+    const load = sysinfo.currentLoad(); // Get CPU usage data
+    io.to('cpu').emit('cpu', load); // Emit CPU usage data to the 'cpu' room
+}, 1000); // Emit every second
+
+server.listen(3000, () => {
+    console.log('server running at http://localhost:3000');
+});

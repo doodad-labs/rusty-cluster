@@ -20,8 +20,9 @@
         });
 
         socket.on("cpu", (data) => {
-            cpus.push(data.cpus.map((cpu) => cpu.load));
-            cpus = cpus.slice(-HISTORY_LENGTH);
+            console.log("CPU data:", data);
+            /* cpus.push(data.cpus.map((cpu) => cpu.load));
+            cpus = cpus.slice(-HISTORY_LENGTH); */
         });
     });
 
@@ -36,7 +37,7 @@
     use([LineChart, GridComponent, CanvasRenderer, TitleComponent]);
 </script>
 
-<div class="h-100 w-200">
+<!-- <div class="h-100 w-200">
     <Chart
         {init}
         options={{
@@ -56,3 +57,4 @@
         }}
     />
 </div>
+ -->

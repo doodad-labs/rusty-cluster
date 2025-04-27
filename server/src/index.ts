@@ -6,21 +6,12 @@ const server = createServer();
 const io = new Server(server);
 
 io.on('connection', (socket) => {
-    
-    console.log('user connected'); // Log when a user connects
-
-    // Join the 'cpu' room to receive CPU usage data
-    socket.join('cpu');
-
-    socket.on('disconnect', () => {
-        // Log when a user disconnects
-        console.log('user disconnected');
-    });
+    socket.join('currentLoad');
 });
 
-const cpuInterval = setInterval(async () => {
-    const cpu = await sysinfo.cpu(); // Get CPU usage data
-    io.to('cpu').emit('cpu', cpu); // Emit CPU usage data to the 'cpu' room
+const currentLoadInterval = setInterval(async () => {
+    const currentLoad = await sysinfo.currentLoad(); // Get CPU usage data
+    io.to('currentLoad').emit('currentLoad', currentLoad); // Emit CPU usage data to the 'cpu' room
 }, 1000); // Emit every second
 
 server.listen(3000, () => {

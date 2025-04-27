@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",       // Output directory
+    "rootDir": "./src",       // Input directory
+    "module": "commonjs",     // (or "ESNext", "NodeNext", etc.)
+    "target": "ES2022",       // JS version to compile to
+    "strict": true,           // Enable strict type-checking
+    "esModuleInterop": true,  // Better ESM/CJS compatibility
+    "skipLibCheck": true      // Skip type-checking library files
+  },
+  "include": ["src/**/*"],    // Only compile files in `src`
+  "exclude": ["node_modules", "**/*.test.ts"] // Exclude test files
+}

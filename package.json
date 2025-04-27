@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "fastify": "^5.3.2",
+    "systeminformation": "^5.25.11"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.27.0",
+    "@babel/core": "^7.26.10",
+    "@babel/preset-typescript": "^7.27.0"
+  }
+}

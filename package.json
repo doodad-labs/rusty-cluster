@@ -10,6 +10,6 @@
     "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
     "@babel/preset-typescript": "^7.27.0",
-    "tsc": "^2.0.4"
+    "typescript": "^5.8.3"
   }
 }

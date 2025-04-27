@@ -19,8 +19,8 @@ io.on('connection', (socket) => {
 });
 
 const cpuInterval = setInterval(async () => {
-    const load = await sysinfo.currentLoad(); // Get CPU usage data
-    io.to('cpu').emit('cpu', load); // Emit CPU usage data to the 'cpu' room
+    const cpu = await sysinfo.cpu(); // Get CPU usage data
+    io.to('cpu').emit('cpu', cpu); // Emit CPU usage data to the 'cpu' room
 }, 1000); // Emit every second
 
 server.listen(3000, () => {

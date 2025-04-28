@@ -70,7 +70,7 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
     if (bytes === 0) return "0 Bytes";
 
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     // If the value is exactly a whole number in a higher unit, adjust it down (e.g., 1024 → 1 KB, not 0.001 MB)

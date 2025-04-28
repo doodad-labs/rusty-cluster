@@ -29,25 +29,40 @@
 
     let hosts: {
         [key: string]: {
+
             socket: Socket;
+
+            info: {
+                address: string;
+                hostname: string;
+                platform: string;
+                distro: string;
+                release: string;
+                kernel: string;
+            }
+
             coreLoad: number[][];
             cpuLoad: number[];
             cpuTemp: number[];
+
             memory: {
                 total: number;
                 used: number[];
                 free: number[];
             }
+
             network: {
                 rx: number[],
                 tx: number[],
                 ms: number[],
             },
+
             storage: {
                 size: number;
                 used: number;
                 free: number;
             }[],
+
             storageStats: {
                 read: number[];
                 write: number[];
@@ -64,20 +79,34 @@
                     transports: ["websocket"],
                     autoConnect: true,
                 }),
+
+                info: {
+                    address: host,
+                    hostname: "",
+                    platform: "",
+                    distro: "",
+                    release: "",
+                    kernel: "",
+                },
+
                 coreLoad: [],
                 cpuLoad: [],
                 cpuTemp: [],
+
                 memory: {
                     total: 0,
                     used: [],
                     free: [],
                 },
+
                 network: {
                     rx: [],
                     tx: [],
                     ms: [],
                 },
+
                 storage: [],
+
                 storageStats: {
                     read: [],
                     write: [],
@@ -85,7 +114,11 @@
             };
 
             hosts[host].socket.on("osInfo", (data) => {
-                console.log("osInfo", data);
+                hosts[host].info.hostname = data.hostname
+                hosts[host].info.platform = data.platform;
+                hosts[host].info.distro = data.distro;
+                hosts[host].info.release = data.release;
+                hosts[host].info.kernel = data.kernel;
             })
 
             hosts[host].socket.on("clusterInfo", (data) => {
@@ -166,7 +199,6 @@
 <div class="flex flex-col gap-4">
 
     <div class="flex place-items-center gap-4">
-
         
         <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
 
@@ -441,7 +473,21 @@
 
             {#each Object.values(hosts) as host, i}
 
-                <h1></h1>
+                <h1 class="text-lg font-semibold text-gray-600">
+                    <span class="capitalize">
+                        {host.info.hostname}
+                    </span>
+
+                    @
+
+                    {host.info.address}
+
+                    |
+
+                    {host.info.platform}
+
+                    ({host.info.distro} {host.info.release})
+                </h1>
     
                 <div class="flex place-items-start gap-4">
                     
@@ -889,10 +935,9 @@
                             <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
                             
                                 <span class="text-xl font-bold text-gray-900">
-                                    {bytesToGB(host.storage.reduce((acc, storage) => acc + storage.used, 0))} 
+                                    {formatBytes(host.storage.reduce((acc, storage) => acc + storage.used, 0))} 
                                     /
-                                    {bytesToGB(host.storage.reduce((acc, storage) => acc + storage.size, 0))} 
-                                    GB
+                                    {formatBytes(host.storage.reduce((acc, storage) => acc + storage.size, 0))} 
                                 </span>
                             
                             </div>

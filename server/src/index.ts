@@ -40,8 +40,8 @@ const clusterInfoInterval = setInterval(async () => {
             available: disk.available,
         })),
         fsStats: {
-            read: fsStats.rx_sec,
-            write: fsStats.wx_sec,
+            read: fsStats?.rx_sec,
+            write: fsStats?.wx_sec,
         }
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second

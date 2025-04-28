@@ -2,7 +2,7 @@ export function clampNumber(value: number, min: number, max: number): number {
     if (min > max) {
         throw new Error("Min cannot be greater than max");
     }
-    
+
     return Math.min(Math.max(value, min), max);
 }
 
@@ -29,4 +29,39 @@ function hslToHex(h: number, s: number, l: number): string {
         return Math.round(255 * color).toString(16).padStart(2, '0');
     };
     return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+}
+
+export function bytesToGB(
+    bytes: number,
+    decimalPlaces: number = 2,
+    useBinary: boolean = true
+): number {
+    const divisor = useBinary ? 1024 ** 3 : 1000 ** 3;
+    const gbValue = bytes / divisor;
+    return Number(gbValue.toFixed(decimalPlaces));
+}
+
+export function calculateClusterCpuUsage(servers: {
+    cpuUsagePercent: number;
+    cores: number;
+}[]): number {
+    if (!servers.length) return 0;
+
+    let totalUsage = 0;
+    let totalCores = 0;
+
+    for (const server of servers) {
+        totalUsage += server.cpuUsagePercent * server.cores;
+        totalCores += server.cores;
+    }
+
+    return totalUsage / totalCores;
+}
+
+export function getLatestCoreLoad(coreLoad: number[][] | unknown, index: number): string {
+    if (!Array.isArray(coreLoad)) return '0.00';
+    const lastEntry = coreLoad[coreLoad.length - 1];
+    if (!Array.isArray(lastEntry)) return '0.00';
+    const value = lastEntry[index];
+    return (typeof value === 'number' ? value : 0).toFixed(2);
 }

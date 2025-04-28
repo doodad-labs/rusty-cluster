@@ -20,7 +20,8 @@
 
     const HISTORY_LENGTH = 75;
 
-    const hostAddress = [
+    const hostAddress: string[] = [
+        
     ];
 
     let hosts: {

@@ -6,12 +6,27 @@ export function clampNumber(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
 }
 
-export function getColour(pos: number): string {
-    const colours = [
-        "#FF5733", "#33FF57", "#3357FF", "#FF33A1", "#A133FF",
-        "#FF8C33", "#33FFF5", "#F5FF33", "#FF3333", "#33FF8C",
-        "#8C33FF", "#F5A133", "#33F5FF", "#A1FF33", "#FF33F5",
-    ];
-    
-    return colours[pos];
+export function getColour(seed: number): string {
+    // Use the golden ratio to distribute hues evenly
+    const GOLDEN_RATIO = 0.618033988749895;
+    const hue = (seed * GOLDEN_RATIO * 360) % 360; // Spread hues in [0, 360]
+
+    // Fixed saturation & lightness for vibrant but readable colors
+    const saturation = 80 + (seed % 15);  // Slight variation (80-95%)
+    const lightness = 50 + (seed % 10);   // Slight variation (50-60%)
+
+    // Convert HSL to HEX
+    return hslToHex(hue, saturation, lightness);
+}
+
+// Helper: Convert HSL to HEX
+function hslToHex(h: number, s: number, l: number): string {
+    l /= 100;
+    const a = (s * Math.min(l, 1 - l)) / 100;
+    const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
 }

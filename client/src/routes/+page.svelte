@@ -435,7 +435,9 @@
     <div class="flex gap-3 place-items-start">
         <div class="flex flex-col gap-4">
 
-            {#each Object.values(hosts) as host}
+            {#each Object.values(hosts) as host, i}
+
+                <h1></h1>
     
                 <div class="flex place-items-start gap-4">
                     
@@ -1005,6 +1007,10 @@
                     </div>
     
                 </div>
+
+                {#if Object.keys(hosts).length !== i+1}
+                <hr class="border-gray-200" />
+                {/if}
     
             {/each}
     

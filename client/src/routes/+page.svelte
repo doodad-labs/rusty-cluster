@@ -85,7 +85,7 @@
             };
 
             hosts[host].socket.on("osInfo", (data) => {
-
+                console.log("osInfo", data);
             })
 
             hosts[host].socket.on("clusterInfo", (data) => {

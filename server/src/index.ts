@@ -5,18 +5,11 @@ import { Server } from 'socket.io';
 const server = createServer();
 const io = new Server(server);
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     socket.join('clusterInfo');
 
-
-    socket.on('connection', async () => {
-        const osInfo = await sysinfo.osInfo(); // Get OS information
-
-        socket.emit('osInfo', {
-            osInfo
-        })
-
-    });
+    const osInfo = await sysinfo.osInfo(); // Get OS information
+    socket.emit('osInfo', osInfo)
 });
 
 const clusterInfoInterval = setInterval(async () => {

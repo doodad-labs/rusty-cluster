@@ -48,8 +48,8 @@
                 cpuLoad: [],
             };
 
-            hosts[host].socket.on("currentLoad", (data) => {
-                hosts[host].coreLoad.push(data.cpus.map((cpu: {load: number}) => cpu.load || 0));
+            hosts[host].socket.on("clusterInfo", (data) => {
+                hosts[host].coreLoad.push(data.cpus.map((cpu: number) => cpu || 0));
                 if (hosts[host].coreLoad.length > HISTORY_LENGTH) {
                     hosts[host].coreLoad.shift();
                 }

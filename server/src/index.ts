@@ -6,12 +6,12 @@ const server = createServer();
 const io = new Server(server);
 
 io.on('connection', (socket) => {
-    socket.join('currentLoad');
+    socket.join('clusterInfo');
 });
 
-const currentLoadInterval = setInterval(async () => {
+const clusterInfoInterval = setInterval(async () => {
     const currentLoad = await sysinfo.currentLoad(); // Get CPU usage data
-    io.to('currentLoad').emit('currentLoad', {
+    io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
         currentLoad: currentLoad.currentLoad,
     }); // Emit CPU usage data to the 'cpu' room

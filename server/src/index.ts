@@ -11,7 +11,10 @@ io.on('connection', (socket) => {
 
 const currentLoadInterval = setInterval(async () => {
     const currentLoad = await sysinfo.currentLoad(); // Get CPU usage data
-    io.to('currentLoad').emit('currentLoad', currentLoad); // Emit CPU usage data to the 'cpu' room
+    io.to('currentLoad').emit('currentLoad', {
+        cpus: currentLoad.cpus,
+        currentLoad: currentLoad.currentLoad,
+    }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 
 server.listen(3000, () => {

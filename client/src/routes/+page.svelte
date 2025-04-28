@@ -86,7 +86,7 @@
 
         <div class="flex place-items-start gap-4">
             
-            <div class="flex flex-col gap-3 w-120 border bg-white border-gray-200 rounded-md p-4">
+            <div class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">
                 <Chart
                     class="h-45"
                     {init}
@@ -189,120 +189,118 @@
                 </table>
             </div>
 
-            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+            <div class="flex flex-col gap-4">
+                <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
                 
-                <Chart
-                    class="absolute top-0 left-0 w-full h-full opacity-30"
-                    {init}
-                    options={{
-                        xAxis: {
-                            show: false, // Hide x-axis
-                            boundaryGap: false,
-                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                            axisTick: { show: false },
-                        },
-                        yAxis: {
-                            type: "value",
-                            axisLabel: {
-                                formatter: "{value} %",
+                    <Chart
+                        class="absolute top-0 left-0 w-full h-full opacity-30"
+                        {init}
+                        options={{
+                            xAxis: {
+                                show: false, // Hide x-axis
+                                boundaryGap: false,
+                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                axisTick: { show: false },
                             },
-                            axisTick: { show: false }, // Hide y-axis ticks
-                            show: false, // Hide y-axis
-                            min: 0, // Fix baseline at 0 for consistency
-                            max: clampNumber(
-                                Math.max(...host.coreLoad.map((cpu) => cpu[0])),
-                                5,
-                                100,
-                            ),
-                        },
-                        grid: {
-                            top: 5, // Minimal padding
-                            right: 0,
-                            bottom: 2,
-                            left: 0,
-                        },
-                        series: [
-                            {
-                                data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
-                                color: "#ae774e", // Use a function to get the color
-                                type: "line",
-                                symbol: "none", // No data points
-                                lineStyle: {
-                                    width: 1.2, // Slightly thicker line
+                            yAxis: {
+                                type: "value",
+                                axisLabel: {
+                                    formatter: "{value} %",
                                 },
-                                areaStyle: {
-                                    opacity: 0.15, // Subtle fill
-                                },
-                                smooth: 0, // Mild smoothing (0 to 1)
-                            }
-                        ],
-                        tooltip: { show: false }, // Disable tooltips
-                        animation: false, // Avoid distracting animation
-                    }}
-                />
-
-                <span class="text-2xl font-bold text-gray-900">
-                    {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)}%
-                </span>
-            
-            </div>
-
-            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                                axisTick: { show: false }, // Hide y-axis ticks
+                                show: false, // Hide y-axis
+                                min: 0, // Fix baseline at 0 for consistency
+                                max: clampNumber(
+                                    Math.max(...host.coreLoad.map((cpu) => cpu[0])),
+                                    5,
+                                    100,
+                                ),
+                            },
+                            grid: {
+                                top: 5, // Minimal padding
+                                right: 0,
+                                bottom: 2,
+                                left: 0,
+                            },
+                            series: [
+                                {
+                                    data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
+                                    color: "#ae774e", // Use a function to get the color
+                                    type: "line",
+                                    symbol: "none", // No data points
+                                    lineStyle: {
+                                        width: 1.2, // Slightly thicker line
+                                    },
+                                    areaStyle: {
+                                        opacity: 0.15, // Subtle fill
+                                    },
+                                    smooth: 0, // Mild smoothing (0 to 1)
+                                }
+                            ],
+                            tooltip: { show: false }, // Disable tooltips
+                            animation: false, // Avoid distracting animation
+                        }}
+                    />
+    
+                    <span class="text-2xl font-bold text-gray-900">
+                        {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)}%
+                    </span>
                 
-                <Chart
-                    class="absolute top-0 left-0 w-full h-full opacity-30"
-                    {init}
-                    options={{
-                        xAxis: {
-                            show: false, // Hide x-axis
-                            boundaryGap: false,
-                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                            axisTick: { show: false },
-                        },
-                        yAxis: {
-                            type: "value",
-                            axisLabel: {
-                                formatter: "{value} %",
+                </div>
+    
+                <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                    
+                    <Chart
+                        class="absolute top-0 left-0 w-full h-full opacity-30"
+                        {init}
+                        options={{
+                            xAxis: {
+                                show: false, // Hide x-axis
+                                boundaryGap: false,
+                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                axisTick: { show: false },
                             },
-                            axisTick: { show: false }, // Hide y-axis ticks
-                            show: false, // Hide y-axis
-                            min: 0, // Fix baseline at 0 for consistency
-                            max: clampNumber(
-                                Math.max(...host.cpuTemp),
-                                5,
-                                100,
-                            ),
-                        },
-                        grid: {
-                            top: 5, // Minimal padding
-                            right: 0,
-                            bottom: 2,
-                            left: 0,
-                        },
-                        series: [
-                            {
-                                data: host.cpuTemp.map(load => clampNumber(load, 0, 100)),
-                                color: "#ae774e", // Use a function to get the color
-                                type: "line",
-                                symbol: "none", // No data points
-                                lineStyle: {
-                                    width: 1.2, // Slightly thicker line
+                            yAxis: {
+                                type: "value",
+                                axisLabel: {
+                                    formatter: "{value} %",
                                 },
-                                areaStyle: {
-                                    opacity: 0.15, // Subtle fill
-                                },
-                                smooth: 0, // Mild smoothing (0 to 1)
-                            }
-                        ],
-                        tooltip: { show: false }, // Disable tooltips
-                        animation: false, // Avoid distracting animation
-                    }}
-                />
-
-                <span class="text-2xl font-bold text-gray-900">
-                    {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
-                </span>
-            
+                                axisTick: { show: false }, // Hide y-axis ticks
+                                show: false, // Hide y-axis
+                                min: 0, // Fix baseline at 0 for consistency
+                                max: 100,
+                            },
+                            grid: {
+                                top: 5, // Minimal padding
+                                right: 0,
+                                bottom: 2,
+                                left: 0,
+                            },
+                            series: [
+                                {
+                                    data: host.cpuTemp.map(load => clampNumber(load, 0, 100)),
+                                    color: "#ae774e", // Use a function to get the color
+                                    type: "line",
+                                    symbol: "none", // No data points
+                                    lineStyle: {
+                                        width: 1.2, // Slightly thicker line
+                                    },
+                                    areaStyle: {
+                                        opacity: 0.15, // Subtle fill
+                                    },
+                                    smooth: 0, // Mild smoothing (0 to 1)
+                                }
+                            ],
+                            tooltip: { show: false }, // Disable tooltips
+                            animation: false, // Avoid distracting animation
+                        }}
+                    />
+    
+                    <span class="text-2xl font-bold text-gray-900">
+                        {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
+                    </span>
+                
+                </div>
             </div>
 
         </div>

@@ -12,11 +12,17 @@ io.on('connection', (socket) => {
 const clusterInfoInterval = setInterval(async () => {
     const currentLoad = await sysinfo.currentLoad(); // Get CPU usage data
     const cpuTemperature = await sysinfo.cpuTemperature(); // Get CPU temperature data
+    const memory = await sysinfo.mem(); // Get memory data
 
     io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
         currentLoad: currentLoad.currentLoad,
-        temp: cpuTemperature.main
+        temp: cpuTemperature.main,
+        memory: {
+            total: memory.total,
+            used: memory.used,
+            free: memory.free,
+        }
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

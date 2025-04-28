@@ -49,6 +49,7 @@
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {
+
                 hosts[host].coreLoad.push(data.cpus.map((cpu: number) => cpu || 0));
                 if (hosts[host].coreLoad.length > HISTORY_LENGTH) {
                     hosts[host].coreLoad.shift();
@@ -58,6 +59,9 @@
                 if (hosts[host].cpuLoad.length > HISTORY_LENGTH) {
                     hosts[host].cpuLoad.shift();
                 }
+
+                console.log(data.temp)
+
             });
         }
 

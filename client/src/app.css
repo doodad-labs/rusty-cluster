@@ -1,1 +1,8 @@
 @import 'tailwindcss';
+
+
+.bg-box {
+    opacity: 1;
+    background-image:  linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(to right, #e5e7eb 1px, #ffffff 1px);
+    background-size: calc(100%/13) calc(100%/4);
+}

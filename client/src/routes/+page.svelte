@@ -47,7 +47,11 @@
                 size: number;
                 used: number;
                 free: number;
-            }[]
+            }[],
+            storageStats: {
+                read: number[];
+                write: number[];
+            }
         };
     } = $state({});
 
@@ -73,7 +77,11 @@
                     tx: [],
                     ms: [],
                 },
-                storage: []
+                storage: [],
+                storageStats: {
+                    read: [],
+                    write: [],
+                }
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {
@@ -127,6 +135,16 @@
                         free: i.free,
                     };
                 });
+
+                hosts[host].storageStats.read.push(data.fsStats.read || 0);
+                if (hosts[host].storageStats.read.length > HISTORY_LENGTH) {
+                    hosts[host].storageStats.read.shift();
+                }
+
+                hosts[host].storageStats.write.push(data.fsStats.write || 0);
+                if (hosts[host].storageStats.write.length > HISTORY_LENGTH) {
+                    hosts[host].storageStats.write.shift();
+                }
 
             });
         }
@@ -861,15 +879,122 @@
                             <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
                             
                                 <span class="text-xl font-bold text-gray-900">
-                                    {
-                                        bytesToGB(host.storage.reduce((acc, storage) => acc + storage.used, 0))
-                                    } /
-                                    {
-                                        bytesToGB(host.storage.reduce((acc, storage) => acc + storage.size, 0))
-                                    } GB
+                                    {bytesToGB(host.storage.reduce((acc, storage) => acc + storage.used, 0))} 
+                                    /
+                                    {bytesToGB(host.storage.reduce((acc, storage) => acc + storage.size, 0))} 
+                                    GB
                                 </span>
                             
                             </div>
+
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.storageStats.read) + (Math.max(...host.storageStats.read) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.storageStats.read,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {formatBytes(host.storageStats.read.length > 1 ? host.storageStats.read[host.storageStats.read.length - 1] : 0)}
+                                </span>
+                            
+                            </div>
+
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.storageStats.write) + (Math.max(...host.storageStats.write) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.storageStats.write,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {formatBytes(host.storageStats.write.length > 1 ? host.storageStats.write[host.storageStats.write.length - 1] : 0)}
+                                </span>
+                            
+                            </div>
+
                         </div>
                     </div>
     

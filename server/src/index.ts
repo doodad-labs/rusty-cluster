@@ -13,7 +13,7 @@ const clusterInfoInterval = setInterval(async () => {
     const currentLoad = await sysinfo.currentLoad(); // Get CPU usage data
     const cpuTemperature = await sysinfo.cpuTemperature(); // Get CPU temperature data
     const memory = await sysinfo.mem(); // Get memory data
-    const graphics = await sysinfo.graphics(); // Get graphics data
+    const network = await sysinfo.networkInterfaces();
 
     io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
@@ -24,7 +24,7 @@ const clusterInfoInterval = setInterval(async () => {
             used: memory.used,
             free: memory.free,
         },
-        graphics
+        network
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

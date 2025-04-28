@@ -9,6 +9,7 @@
     import { LineChart, GaugeChart } from "echarts/charts";
     import { GridComponent, TooltipComponent } from "echarts/components";
     import { CanvasRenderer } from "echarts/renderers";
+    import { number } from "echarts";
 
     use([
         GaugeChart,
@@ -21,7 +22,6 @@
     const HISTORY_LENGTH = 75;
 
     const hostAddress: string[] = [
-
         "192.168.1.124:3000",
         "192.168.1.212:3000",
         "192.168.1.109:3000",
@@ -37,6 +37,7 @@
             memTotal: number;
             memUsed: number[];
             memFree: number[];
+            vram: number,
         };
     } = $state({});
 
@@ -55,6 +56,7 @@
                 memTotal: 0,
                 memUsed: [],
                 memFree: [],
+                vram: 0,
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {

@@ -32,6 +32,7 @@
             socket: Socket;
             coreLoad: number[][];
             cpuLoad: number[];
+            cpuTemp: number[];
         };
     } = $state({});
 
@@ -46,6 +47,7 @@
                 }),
                 coreLoad: [],
                 cpuLoad: [],
+                cpuTemp: [],
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {
@@ -60,7 +62,10 @@
                     hosts[host].cpuLoad.shift();
                 }
 
-                console.log(data.temp)
+                hosts[host].cpuTemp.push(data.temp);
+                if (hosts[host].cpuTemp.length > HISTORY_LENGTH) {
+                    hosts[host].cpuTemp.shift();
+                }
 
             });
         }
@@ -238,6 +243,64 @@
 
                 <span class="text-2xl font-bold text-gray-900">
                     {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)}%
+                </span>
+            
+            </div>
+
+            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                
+                <Chart
+                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                    {init}
+                    options={{
+                        xAxis: {
+                            show: false, // Hide x-axis
+                            boundaryGap: false,
+                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                            axisTick: { show: false },
+                        },
+                        yAxis: {
+                            type: "value",
+                            axisLabel: {
+                                formatter: "{value} %",
+                            },
+                            axisTick: { show: false }, // Hide y-axis ticks
+                            show: false, // Hide y-axis
+                            min: 0, // Fix baseline at 0 for consistency
+                            max: clampNumber(
+                                Math.max(...host.cpuTemp),
+                                5,
+                                100,
+                            ),
+                        },
+                        grid: {
+                            top: 5, // Minimal padding
+                            right: 0,
+                            bottom: 2,
+                            left: 0,
+                        },
+                        series: [
+                            {
+                                data: host.cpuTemp.map(load => clampNumber(load, 0, 100)),
+                                color: "#ae774e", // Use a function to get the color
+                                type: "line",
+                                symbol: "none", // No data points
+                                lineStyle: {
+                                    width: 1.2, // Slightly thicker line
+                                },
+                                areaStyle: {
+                                    opacity: 0.15, // Subtle fill
+                                },
+                                smooth: 0, // Mild smoothing (0 to 1)
+                            }
+                        ],
+                        tooltip: { show: false }, // Disable tooltips
+                        animation: false, // Avoid distracting animation
+                    }}
+                />
+
+                <span class="text-2xl font-bold text-gray-900">
+                    {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
                 </span>
             
             </div>

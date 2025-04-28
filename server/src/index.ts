@@ -16,7 +16,7 @@ const clusterInfoInterval = setInterval(async () => {
     io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
         currentLoad: currentLoad.currentLoad,
-        temp: cpuTemperature
+        temp: cpuTemperature.main
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

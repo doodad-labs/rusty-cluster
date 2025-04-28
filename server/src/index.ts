@@ -26,6 +26,7 @@ const clusterInfoInterval = setInterval(async () => {
         },
         network: network.map((net) => ({
             iface: net.iface,
+            speed: net.ms,
             rx_sec: net.rx_sec,
             tx_sec: net.tx_sec,
         }))

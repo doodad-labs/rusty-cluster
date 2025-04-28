@@ -41,6 +41,7 @@
             network: {
                     rx: number[],
                     tx: number[],
+                    ms: number[],
                 }
         };
     } = $state({});
@@ -65,6 +66,7 @@
                 network: {
                     rx: [],
                     tx: [],
+                    ms: [],
                 }
             };
 
@@ -105,6 +107,11 @@
                 hosts[host].network.tx.push(data.network.map((i) => parseFloat(i.tx_sec) || 0).reduce((a: number, b: number) => a + b, 0));
                 if (hosts[host].network.tx.length > HISTORY_LENGTH) {
                     hosts[host].network.tx.shift();
+                }
+
+                hosts[host].network.ms.push(data.network[0].ms || 0);
+                if (hosts[host].network.ms.length > HISTORY_LENGTH) {
+                    hosts[host].network.ms.shift();
                 }
 
             });
@@ -541,6 +548,61 @@
                         </div>
 
                         <div class="flex flex-col gap-4">
+
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.ms) + (Math.max(...host.network.ms) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.ms,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {(host.network.ms.length > 1 ? host.network.ms[host.network.ms.length - 1] : 0).toFixed(2) } ms
+                                </span>
+                            
+                            </div>
+
                             <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
                             
                                 <Chart
@@ -590,7 +652,7 @@
                                 />
                 
                                 <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} OUT
+                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} IN
                                 </span>
                             
                             </div>
@@ -644,7 +706,7 @@
                                 />
                 
                                 <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} IN
+                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} OUT
                                 </span>
                             
                             </div>

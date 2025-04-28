@@ -31,6 +31,7 @@
         [key: string]: {
 
             socket: Socket;
+            connected: boolean;
 
             info: {
                 address: string;
@@ -75,10 +76,13 @@
             const host = hostAddress[i];
 
             hosts[host] = {
+
                 socket: io(host, {
                     transports: ["websocket"],
                     autoConnect: true,
                 }),
+
+                connected: false,
 
                 info: {
                     address: host,
@@ -112,6 +116,14 @@
                     write: [],
                 }
             };
+
+            hosts[host].socket.on("connect", () => {
+                hosts[host].connected = true;
+            });
+
+            hosts[host].socket.on("disconnect", () => {
+                hosts[host].connected = false;
+            });
 
             hosts[host].socket.on("osInfo", (data) => {
                 hosts[host].info.hostname = data.hostname
@@ -473,22 +485,40 @@
 
             {#each Object.values(hosts) as host, i}
 
-                <h1 class="text-lg font-semibold text-gray-600">
-                    <span class="capitalize">
-                        {host.info.hostname}
-                    </span>
-
-                    @
-
-                    {host.info.address}
-
-                    |
-
-                    {host.info.platform}
-
-                    ({host.info.distro} {host.info.release})
-                </h1>
+                <div class="flex place-items-center justify-between">
+                    <h1 class="text-lg font-semibold text-gray-600">
+                        <span class="capitalize">
+                            {host.info.hostname}
+                        </span>
     
+                        @
+    
+                        {host.info.address}
+    
+                        |
+    
+                        {host.info.platform}
+    
+                        ({host.info.distro} {host.info.release})
+                    </h1>
+
+                    <div>
+
+                        {#if host.connected}
+                            <span class="bg-green-400/20 border border-green-400 text-green-600 px-1 py-0.5 text-sm rounded-md">
+                                Connected
+                            </span>
+                        {:else}
+                            <span class="bg-red-400/20 border border-red-400 text-red-600 px-1 py-0.5 text-sm rounded-md">
+                                Disconnected
+                            </span>
+                        {/if}
+
+
+                    </div>
+
+                </div>
+
                 <div class="flex place-items-start gap-4">
                     
                     <div class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">

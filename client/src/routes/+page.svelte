@@ -21,7 +21,6 @@
     const HISTORY_LENGTH = 75;
 
     const hostAddress = [
-        
     ];
 
     let hosts: {
@@ -69,7 +68,9 @@
 </script>
 
 <div class="flex flex-col gap-4">
+
     {#each Object.values(hosts) as host}
+
         <div class="flex place-items-start gap-4">
             
             <div class="flex flex-col gap-3 w-120 border bg-white border-gray-200 rounded-md p-4">
@@ -234,5 +235,7 @@
             </div>
 
         </div>
+
     {/each}
+
 </div>

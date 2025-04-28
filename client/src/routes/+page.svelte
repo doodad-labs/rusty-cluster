@@ -204,7 +204,7 @@
                                     })
                                 );
                             }),
-                            color: "#ae774e", // Use a function to get the color
+                            color: "#e0261d", // Use a function to get the color
                             type: "line",
                             symbol: "none", // No data points
                             lineStyle: {
@@ -267,7 +267,7 @@
                             data: Array.from({ length: HISTORY_LENGTH }, (_,i) => {
                                 return Object.values(hosts).reduce((acc, host) => acc + host.memory.used[i], 0);
                             }),
-                            color: "#ae774e", // Use a function to get the color
+                            color: "#3f6630", // Use a function to get the color
                             type: "line",
                             symbol: "none", // No data points
                             lineStyle: {
@@ -329,7 +329,7 @@
                             data: Array.from({ length: HISTORY_LENGTH }, (_,i) => {
                                 return Object.values(hosts).reduce((acc, host) => acc + host.network.tx[i], 0) || 0;
                             }),
-                            color: "#ae774e", // Use a function to get the color
+                            color: "#6f40f9", // Use a function to get the color
                             type: "line",
                             symbol: "none", // No data points
                             lineStyle: {
@@ -389,7 +389,7 @@
                             data: Array.from({ length: HISTORY_LENGTH }, (_,i) => {
                                 return Object.values(hosts).reduce((acc, host) => acc + host.network.rx[i], 0) || 0;
                             }),
-                            color: "#ae774e", // Use a function to get the color
+                            color: "#f940ed", // Use a function to get the color
                             type: "line",
                             symbol: "none", // No data points
                             lineStyle: {
@@ -417,6 +417,10 @@
         <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
+                {formatBytes(
+                    Object.values(hosts).reduce((acc, host) => acc + host.storage.reduce((acc, storage) => acc + storage.used, 0), 0)
+                )}
+                /
                 {
                     formatBytes(Object.values(hosts).reduce((acc, host) => acc + host.storage.reduce((acc, storage) => acc + storage.size, 0), 0))
                 }
@@ -575,7 +579,7 @@
                                         series: [
                                             {
                                                 data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#158c62", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -629,7 +633,7 @@
                                         series: [
                                             {
                                                 data: host.cpuTemp,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#2a158c", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -683,7 +687,7 @@
                                         series: [
                                             {
                                                 data: host.memory.used,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#a00c0c", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -742,7 +746,7 @@
                                         series: [
                                             {
                                                 data: host.network.ms,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#0d3f89", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -796,7 +800,7 @@
                                         series: [
                                             {
                                                 data: host.network.rx,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#dd30cc", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -814,7 +818,7 @@
                                 />
                 
                                 <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} IN
+                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} In
                                 </span>
                             
                             </div>
@@ -850,7 +854,7 @@
                                         series: [
                                             {
                                                 data: host.network.tx,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#04aaf7", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -868,7 +872,7 @@
                                 />
                 
                                 <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} OUT
+                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} Out
                                 </span>
                             
                             </div>
@@ -918,7 +922,7 @@
                                         series: [
                                             {
                                                 data: host.storageStats.read,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#b639f9", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -937,6 +941,7 @@
                 
                                 <span class="text-xl font-bold text-gray-900">
                                     {formatBytes(host.storageStats.read.length > 1 ? host.storageStats.read[host.storageStats.read.length - 1] : 0)}
+                                    Read
                                 </span>
                             
                             </div>
@@ -972,7 +977,7 @@
                                         series: [
                                             {
                                                 data: host.storageStats.write,
-                                                color: "#ae774e", // Use a function to get the color
+                                                color: "#00729b", // Use a function to get the color
                                                 type: "line",
                                                 symbol: "none", // No data points
                                                 lineStyle: {
@@ -991,6 +996,7 @@
                 
                                 <span class="text-xl font-bold text-gray-900">
                                     {formatBytes(host.storageStats.write.length > 1 ? host.storageStats.write[host.storageStats.write.length - 1] : 0)}
+                                    Write
                                 </span>
                             
                             </div>

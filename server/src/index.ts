@@ -15,6 +15,7 @@ const clusterInfoInterval = setInterval(async () => {
     const memory = await sysinfo.mem(); // Get memory data
     const network = await sysinfo.networkStats();
     const storage = await sysinfo.fsSize(); // Get storage data
+    const storageStats = await sysinfo.fsStats(); // Get storage stats
 
     io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
@@ -26,12 +27,17 @@ const clusterInfoInterval = setInterval(async () => {
             free: memory.free,
         },
         network: network.map((net) => ({
-            iface: net.iface,
             speed: net.ms,
             rx_sec: net.rx_sec,
             tx_sec: net.tx_sec,
         })),
-        storage
+        storage: storage.map((disk) => ({
+            size: disk.size,
+            used: disk.used,
+            available: disk.available,
+        })),
+        storageStats: storageStats
+
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

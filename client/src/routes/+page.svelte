@@ -39,10 +39,15 @@
                 free: number[];
             }
             network: {
-                    rx: number[],
-                    tx: number[],
-                    ms: number[],
-                }
+                rx: number[],
+                tx: number[],
+                ms: number[],
+            },
+            storage: {
+                size: number;
+                used: number;
+                free: number;
+            }[]
         };
     } = $state({});
 
@@ -67,7 +72,8 @@
                     rx: [],
                     tx: [],
                     ms: [],
-                }
+                },
+                storage: []
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {
@@ -113,6 +119,14 @@
                 if (hosts[host].network.ms.length > HISTORY_LENGTH) {
                     hosts[host].network.ms.shift();
                 }
+
+                hosts[host].storage = data.storage.map((i: { size: number; used: number; free: number }) => {
+                    return {
+                        size: i.size,
+                        used: i.used,
+                        free: i.free,
+                    };
+                });
 
             });
         }
@@ -378,6 +392,16 @@
                 {formatBytes(
                     Object.values(hosts).reduce((acc, host) => acc + host.network.rx[host.network.rx.length - 1], 0)
                 )} IN
+            </span>
+        
+        </div>
+
+        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+
+            <span class="text-xl font-bold text-gray-900">
+                {
+                    formatBytes(Object.values(hosts).reduce((acc, host) => acc + host.storage.reduce((acc, storage) => acc + storage.size, 0), 0))
+                }
             </span>
         
         </div>
@@ -669,7 +693,6 @@
                         </div>
 
                         <div class="flex flex-col gap-4">
-
                             <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
                             
                                 <Chart
@@ -828,6 +851,22 @@
                 
                                 <span class="text-xl font-bold text-gray-900">
                                     {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} OUT
+                                </span>
+                            
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-4">
+                            
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <span class="text-xl font-bold text-gray-900">
+                                    {
+                                        bytesToGB(host.storage.reduce((acc, storage) => acc + storage.used, 0))
+                                    } /
+                                    {
+                                        bytesToGB(host.storage.reduce((acc, storage) => acc + storage.size, 0))
+                                    } GB
                                 </span>
                             
                             </div>

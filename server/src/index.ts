@@ -7,6 +7,16 @@ const io = new Server(server);
 
 io.on('connection', (socket) => {
     socket.join('clusterInfo');
+
+
+    socket.on('connection', async () => {
+        const osInfo = await sysinfo.osInfo(); // Get OS information
+
+        socket.emit('osInfo', {
+            osInfo
+        })
+
+    });
 });
 
 const clusterInfoInterval = setInterval(async () => {
@@ -16,7 +26,6 @@ const clusterInfoInterval = setInterval(async () => {
     const networkStats = await sysinfo.networkStats();
     const fsSize = await sysinfo.fsSize(); // Get storage data
     const fsStats = await sysinfo.fsStats(); // Get storage stats
-    const osInfo = await sysinfo.osInfo(); // Get OS information
 
     io.to('clusterInfo').emit('clusterInfo', {
         cpus: currentLoad.cpus.map((cpu) => cpu.load),
@@ -40,8 +49,7 @@ const clusterInfoInterval = setInterval(async () => {
         fsStats: {
             read: fsStats.rx_sec,
             write: fsStats.wx_sec,
-        },
-        osInfo
+        }
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

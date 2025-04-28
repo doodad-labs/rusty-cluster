@@ -84,6 +84,10 @@
                 }
             };
 
+            hosts[host].socket.on("osInfo", (data) => {
+
+            })
+
             hosts[host].socket.on("clusterInfo", (data) => {
 
                 hosts[host].coreLoad.push(data.cpus);

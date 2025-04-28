@@ -65,3 +65,16 @@ export function getLatestCoreLoad(coreLoad: number[][] | unknown, index: number)
     const value = lastEntry[index];
     return (typeof value === 'number' ? value : 0).toFixed(2);
 }
+
+export function formatBytes(bytes: number, decimals: number = 2): string {
+    if (bytes === 0) return "0 Bytes";
+
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    // If the value is exactly a whole number in a higher unit, adjust it down (e.g., 1024 → 1 KB, not 0.001 MB)
+    const formattedValue = parseFloat((bytes / Math.pow(k, i)).toFixed(decimals));
+
+    return `${formattedValue} ${sizes[i]}`;
+}

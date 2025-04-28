@@ -2,14 +2,13 @@
     import { io } from "socket.io-client";
     import type { Socket } from "socket.io-client";
     import { onMount } from "svelte";
-    import { clampNumber, getColour, bytesToGB, calculateClusterCpuUsage, getLatestCoreLoad } from "$lib/utils";
+    import { clampNumber, getColour, bytesToGB, calculateClusterCpuUsage, getLatestCoreLoad, formatBytes } from "$lib/utils";
 
     import { Chart } from "svelte-echarts";
     import { init, use } from "echarts/core";
     import { LineChart, GaugeChart } from "echarts/charts";
     import { GridComponent, TooltipComponent } from "echarts/components";
     import { CanvasRenderer } from "echarts/renderers";
-    import { number } from "echarts";
 
     use([
         GaugeChart,
@@ -34,10 +33,15 @@
             coreLoad: number[][];
             cpuLoad: number[];
             cpuTemp: number[];
-            memTotal: number;
-            memUsed: number[];
-            memFree: number[];
-            vram: number,
+            memory: {
+                total: number;
+                used: number[];
+                free: number[];
+            }
+            network: {
+                    rx: number[],
+                    tx: number[],
+                }
         };
     } = $state({});
 
@@ -53,10 +57,15 @@
                 coreLoad: [],
                 cpuLoad: [],
                 cpuTemp: [],
-                memTotal: 0,
-                memUsed: [],
-                memFree: [],
-                vram: 0,
+                memory: {
+                    total: 0,
+                    used: [],
+                    free: [],
+                },
+                network: {
+                    rx: [],
+                    tx: [],
+                }
             };
 
             hosts[host].socket.on("clusterInfo", (data) => {
@@ -76,16 +85,26 @@
                     hosts[host].cpuTemp.shift();
                 }
 
-                hosts[host].memTotal = parseFloat(data.memory.total) || 0;
+                hosts[host].memory.total = parseFloat(data.memory.total) || 0;
 
-                hosts[host].memUsed.push(parseFloat(data.memory.used) || 0);
-                if (hosts[host].memUsed.length > HISTORY_LENGTH) {
-                    hosts[host].memUsed.shift();
+                hosts[host].memory.used.push(parseFloat(data.memory.used) || 0);
+                if (hosts[host].memory.used.length > HISTORY_LENGTH) {
+                    hosts[host].memory.used.shift();
                 }
 
-                hosts[host].memFree.push(parseFloat(data.memory.free) || 0);
-                if (hosts[host].memFree.length > HISTORY_LENGTH) {
-                    hosts[host].memFree.shift();
+                hosts[host].memory.free.push(parseFloat(data.memory.free) || 0);
+                if (hosts[host].memory.free.length > HISTORY_LENGTH) {
+                    hosts[host].memory.free.shift();
+                }
+
+                hosts[host].network.rx.push(data.network.map((i) => parseFloat(i.rx_sec) || 0).reduce((a: number, b: number) => a + b, 0));
+                if (hosts[host].network.rx.length > HISTORY_LENGTH) {
+                    hosts[host].network.rx.shift();
+                }
+
+                hosts[host].network.tx.push(data.network.map((i) => parseFloat(i.tx_sec) || 0).reduce((a: number, b: number) => a + b, 0));
+                if (hosts[host].network.tx.length > HISTORY_LENGTH) {
+                    hosts[host].network.tx.shift();
                 }
 
             });
@@ -197,7 +216,7 @@
                         axisTick: { show: false }, // Hide y-axis ticks
                         show: false, // Hide y-axis
                         min: 0, // Fix baseline at 0 for consistency
-                        max: Object.values(hosts).reduce((acc, host) => acc + host.memTotal, 0),
+                        max: Object.values(hosts).reduce((acc, host) => acc + host.memory.total, 0),
                     },
                     grid: {
                         top: 5, // Minimal padding
@@ -207,7 +226,7 @@
                     },
                     series: [
                         {
-                            data: Object.values(hosts).map(host => host.memUsed).flat(),
+                            data: Object.values(hosts).map(host => host.memory.used).flat(),
                             color: "#ae774e", // Use a function to get the color
                             type: "line",
                             symbol: "none", // No data points
@@ -226,10 +245,10 @@
             />
 
             <span class="text-xl font-bold text-gray-900">
-                {bytesToGB(
-                    Object.values(hosts).reduce((acc, host) => acc + host.memUsed[host.memUsed.length - 1], 0)
+                {formatBytes(
+                    Object.values(hosts).reduce((acc, host) => acc + host.memory.used[host.memory.used.length - 1], 0)
                 )} / {bytesToGB(
-                    Object.values(hosts).reduce((acc, host) => acc + host.memTotal, 0)
+                    Object.values(hosts).reduce((acc, host) => acc + host.memory.total, 0)
                 )} GB
             </span>
         
@@ -239,124 +258,20 @@
     
     <hr>
 
-    <div class="flex flex-col gap-4">
+    <div class="flex gap-3 place-items-start">
+        <div class="flex flex-col gap-4">
 
-        {#each Object.values(hosts) as host}
-
-            <div class="flex place-items-start gap-4">
-                
-                <div class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">
-                    <Chart
-                        class="h-45"
-                        {init}
-                        options={{
-                            xAxis: {
-                                show: true,
-                                boundaryGap: false,
-                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                axisTick: { show: false },
-                            },
-                            yAxis: {
-                                type: "value",
-                                axisLabel: {
-                                    formatter: "{value} %",
-                                },
-                                axisTick: { show: false }, // Hide y-axis ticks
-                                show: true, // Hide y-axis
-                                min: 0, // Fix baseline at 0 for consistency
-                                max: clampNumber(
-                                    Math.max(...host.coreLoad.map((cpu) => cpu[0])) + 20,
-                                    30,
-                                    110,
-                                ),
-                            },
-                            grid: {
-                                top: 5, // Minimal padding
-                                right: 0,
-                                bottom: 2,
-                                left: 0,
-                            },
-                            series: Array.from({ length: host.coreLoad.length }, (_, i) => ({
-                                // Assuming 4 cores
-                                data: host.coreLoad.map((cpu) =>
-                                    clampNumber(cpu[i], 0, 100),
-                                ),
-                                color: getColour(i), // Use a function to get the color
-                                type: "line",
-                                symbol: "none", // No data points
-                                lineStyle: {
-                                    width: 1.2, // Slightly thicker line
-                                },
-                                areaStyle: {
-                                    opacity: 0.15, // Subtle fill
-                                },
-                                smooth: 0, // Mild smoothing (0 to 1)
-                            })),
-                            tooltip: { show: false }, // Disable tooltips
-                            animation: false, // Avoid distracting animation
-                        }}
-                    />
-
-                    <table class="min-w-full divide-y-2 divide-gray-200">
-                        <thead class="ltr:text-left rtl:text-right">
-                            <tr class="*:font-medium *:text-gray-900">
-                                <th class="px-3 pb-1 whitespace-nowrap">Core</th>
-                                <th class="px-3 pb-1 whitespace-nowrap">Current</th>
-                                <th class="px-3 pb-1 whitespace-nowrap">Avg</th>
-                                <th class="px-3 pb-1 whitespace-nowrap">Min</th>
-                                <th class="px-3 pb-1 whitespace-nowrap">Max</th>
-                            </tr>
-                        </thead>
-
-                        <tbody class="divide-y divide-gray-200">
-                            {#each { length: host.coreLoad.length ? host.coreLoad[0].length : 0 }, i}
-                                <tr class="*:text-gray-900 *:first:font-medium">
-                                    <td class="px-3 py-1 whitespace-nowrap">
-
-                                        <div class="flex place-items-center gap-2">
-                                            <div class="w-6 h-3 border-2 rounded-xs overflow-hidden" style="border-color: {getColour(i)};">
-                                                <div class="w-full h-full opacity-25" style="background: {getColour(i)};"></div>
-                                            </div>
-                                            {i + 1}
-                                        </div>
-
-                                    </td>
-                                    <td class="px-3 py-1 whitespace-nowrap">
-                                        {getLatestCoreLoad(host.coreLoad, i)}%
-                                    </td>
-                                    <td class="px-3 py-1 whitespace-nowrap"
-                                        >{(
-                                            host.coreLoad.reduce(
-                                                (acc, cpu) => acc + cpu[i],
-                                                0,
-                                            ) / host.coreLoad.length
-                                        ).toFixed(2)}%</td
-                                    >
-                                    <td class="px-3 py-1 whitespace-nowrap"
-                                        >{Math.min(
-                                            ...host.coreLoad.map((cpu) => cpu[i]),
-                                        ).toFixed(2)}%</td
-                                    >
-                                    <td class="px-3 py-1 whitespace-nowrap"
-                                        >{Math.max(
-                                            ...host.coreLoad.map((cpu) => cpu[i]),
-                                        ).toFixed(2)}%</td
-                                    >
-                                </tr>
-                            {/each}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="flex flex-col gap-4">
-                    <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+            {#each Object.values(hosts) as host}
+    
+                <div class="flex place-items-start gap-4">
                     
+                    <div class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">
                         <Chart
-                            class="absolute top-0 left-0 w-full h-full opacity-30"
+                            class="h-45"
                             {init}
                             options={{
                                 xAxis: {
-                                    show: false, // Hide x-axis
+                                    show: true,
                                     boundaryGap: false,
                                     data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
@@ -367,12 +282,12 @@
                                         formatter: "{value} %",
                                     },
                                     axisTick: { show: false }, // Hide y-axis ticks
-                                    show: false, // Hide y-axis
+                                    show: true, // Hide y-axis
                                     min: 0, // Fix baseline at 0 for consistency
                                     max: clampNumber(
-                                        Math.max(...host.cpuLoad) + 5,
-                                        5,
-                                        100,
+                                        Math.max(...host.coreLoad.map((cpu) => cpu[0])) + 20,
+                                        30,
+                                        110,
                                     ),
                                 },
                                 grid: {
@@ -381,147 +296,365 @@
                                     bottom: 2,
                                     left: 0,
                                 },
-                                series: [
-                                    {
-                                        data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
-                                        color: "#ae774e", // Use a function to get the color
-                                        type: "line",
-                                        symbol: "none", // No data points
-                                        lineStyle: {
-                                            width: 1.2, // Slightly thicker line
-                                        },
-                                        areaStyle: {
-                                            opacity: 0.15, // Subtle fill
-                                        },
-                                        smooth: 0, // Mild smoothing (0 to 1)
-                                    }
-                                ],
-                                tooltip: { show: false }, // Disable tooltips
-                                animation: false, // Avoid distracting animation
-                            }}
-                        />
-        
-                        <span class="text-xl font-bold text-gray-900">
-                            {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)}%
-                        </span>
-                    
-                    </div>
-        
-                    <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                        
-                        <Chart
-                            class="absolute top-0 left-0 w-full h-full opacity-30"
-                            {init}
-                            options={{
-                                xAxis: {
-                                    show: false, // Hide x-axis
-                                    boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                    axisTick: { show: false },
-                                },
-                                yAxis: {
-                                    type: "value",
-                                    axisLabel: {
-                                        formatter: "{value} %",
+                                series: Array.from({ length: host.coreLoad.length }, (_, i) => ({
+                                    // Assuming 4 cores
+                                    data: host.coreLoad.map((cpu) =>
+                                        clampNumber(cpu[i], 0, 100),
+                                    ),
+                                    color: getColour(i), // Use a function to get the color
+                                    type: "line",
+                                    symbol: "none", // No data points
+                                    lineStyle: {
+                                        width: 1.2, // Slightly thicker line
                                     },
-                                    axisTick: { show: false }, // Hide y-axis ticks
-                                    show: false, // Hide y-axis
-                                    min: 0, // Fix baseline at 0 for consistency
-                                    max: Math.max(...host.cpuTemp, 100),
-                                },
-                                grid: {
-                                    top: 5, // Minimal padding
-                                    right: 0,
-                                    bottom: 2,
-                                    left: 0,
-                                },
-                                series: [
-                                    {
-                                        data: host.cpuTemp,
-                                        color: "#ae774e", // Use a function to get the color
-                                        type: "line",
-                                        symbol: "none", // No data points
-                                        lineStyle: {
-                                            width: 1.2, // Slightly thicker line
-                                        },
-                                        areaStyle: {
-                                            opacity: 0.15, // Subtle fill
-                                        },
-                                        smooth: 0, // Mild smoothing (0 to 1)
-                                    }
-                                ],
+                                    areaStyle: {
+                                        opacity: 0.15, // Subtle fill
+                                    },
+                                    smooth: 0, // Mild smoothing (0 to 1)
+                                })),
                                 tooltip: { show: false }, // Disable tooltips
                                 animation: false, // Avoid distracting animation
                             }}
                         />
-        
-                        <span class="text-xl font-bold text-gray-900">
-                            {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
-                        </span>
-                    
+    
+                        <table class="min-w-full divide-y-2 divide-gray-200">
+                            <thead class="ltr:text-left rtl:text-right">
+                                <tr class="*:font-medium *:text-gray-900">
+                                    <th class="px-3 pb-1 whitespace-nowrap">Core</th>
+                                    <th class="px-3 pb-1 whitespace-nowrap">Current</th>
+                                    <th class="px-3 pb-1 whitespace-nowrap">Avg</th>
+                                    <th class="px-3 pb-1 whitespace-nowrap">Min</th>
+                                    <th class="px-3 pb-1 whitespace-nowrap">Max</th>
+                                </tr>
+                            </thead>
+    
+                            <tbody class="divide-y divide-gray-200">
+                                {#each { length: host.coreLoad.length ? host.coreLoad[0].length : 0 }, i}
+                                    <tr class="*:text-gray-900 *:first:font-medium">
+                                        <td class="px-3 py-1 whitespace-nowrap">
+    
+                                            <div class="flex place-items-center gap-2">
+                                                <div class="w-6 h-3 border-2 rounded-xs overflow-hidden" style="border-color: {getColour(i)};">
+                                                    <div class="w-full h-full opacity-25" style="background: {getColour(i)};"></div>
+                                                </div>
+                                                {i + 1}
+                                            </div>
+    
+                                        </td>
+                                        <td class="px-3 py-1 whitespace-nowrap">
+                                            {getLatestCoreLoad(host.coreLoad, i)}%
+                                        </td>
+                                        <td class="px-3 py-1 whitespace-nowrap"
+                                            >{(
+                                                host.coreLoad.reduce(
+                                                    (acc, cpu) => acc + cpu[i],
+                                                    0,
+                                                ) / host.coreLoad.length
+                                            ).toFixed(2)}%</td
+                                        >
+                                        <td class="px-3 py-1 whitespace-nowrap"
+                                            >{Math.min(
+                                                ...host.coreLoad.map((cpu) => cpu[i]),
+                                            ).toFixed(2)}%</td
+                                        >
+                                        <td class="px-3 py-1 whitespace-nowrap"
+                                            >{Math.max(
+                                                ...host.coreLoad.map((cpu) => cpu[i]),
+                                            ).toFixed(2)}%</td
+                                        >
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
                     </div>
+    
+                    <div class="flex gap-4 place-items-start">
+                        <div class="flex flex-col gap-4">
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: clampNumber(
+                                                Math.max(...host.cpuLoad) + 5,
+                                                5,
+                                                100,
+                                            ),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)}%
+                                </span>
+                            
+                            </div>
+                
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                                
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.cpuTemp, 100),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.cpuTemp,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
+                                </span>
+                            
+                            </div>
+        
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                                
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: host.memory.total,
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.memory.used,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {bytesToGB(host.memory.used.length > 1 ? host.memory.used[host.memory.used.length - 1] : 0)}
+                                    /
+                                    {bytesToGB(host.memory.total)}
+                                    GB
+                                </span>
+                            
+                            </div>
+                        </div>
 
-                    <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                        
-                        <Chart
-                            class="absolute top-0 left-0 w-full h-full opacity-30"
-                            {init}
-                            options={{
-                                xAxis: {
-                                    show: false, // Hide x-axis
-                                    boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                    axisTick: { show: false },
-                                },
-                                yAxis: {
-                                    type: "value",
-                                    axisLabel: {
-                                        formatter: "{value} %",
-                                    },
-                                    axisTick: { show: false }, // Hide y-axis ticks
-                                    show: false, // Hide y-axis
-                                    min: 0, // Fix baseline at 0 for consistency
-                                    max: host.memTotal,
-                                },
-                                grid: {
-                                    top: 5, // Minimal padding
-                                    right: 0,
-                                    bottom: 2,
-                                    left: 0,
-                                },
-                                series: [
-                                    {
-                                        data: host.memUsed,
-                                        color: "#ae774e", // Use a function to get the color
-                                        type: "line",
-                                        symbol: "none", // No data points
-                                        lineStyle: {
-                                            width: 1.2, // Slightly thicker line
+                        <div class="flex flex-col gap-4">
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
                                         },
-                                        areaStyle: {
-                                            opacity: 0.15, // Subtle fill
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.rx) + (Math.max(...host.network.rx) / 5),
                                         },
-                                        smooth: 0, // Mild smoothing (0 to 1)
-                                    }
-                                ],
-                                tooltip: { show: false }, // Disable tooltips
-                                animation: false, // Avoid distracting animation
-                            }}
-                        />
-        
-                        <span class="text-xl font-bold text-gray-900">
-                            {bytesToGB(host.memUsed.length > 1 ? host.memUsed[host.memUsed.length - 1] : 0)}
-                            /
-                            {bytesToGB(host.memTotal)}
-                            GB
-                        </span>
-                    
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.rx,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} OUT
+                                </span>
+                            
+                            </div>
+
+                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+                            
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.tx) + (Math.max(...host.network.tx) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.tx,
+                                                color: "#ae774e", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                
+                                <span class="text-xl font-bold text-gray-900">
+                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] : 0)} IN
+                                </span>
+                            
+                            </div>
+                        </div>
                     </div>
+    
                 </div>
-
-            </div>
-
-        {/each}
-
+    
+            {/each}
+    
+        </div>
     </div>
 </div>

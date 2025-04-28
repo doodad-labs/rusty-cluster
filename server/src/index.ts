@@ -24,7 +24,11 @@ const clusterInfoInterval = setInterval(async () => {
             used: memory.used,
             free: memory.free,
         },
-        network
+        network: network.map((net) => ({
+            iface: net.iface,
+            rx_sec: net.rx_sec,
+            tx_sec: net.tx_sec,
+        }))
     }); // Emit CPU usage data to the 'cpu' room
 }, 250); // Emit every second
 

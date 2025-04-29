@@ -63,7 +63,7 @@ async function checkAndProcessFile(filePath: string): Promise<void> {
         const content = await fs.readFile(filePath, 'utf-8');
         console.log('File content:');
         console.log(content);
-    } catch (error) {
+    } catch (error: any) {
         if (error.code === 'ENOENT') {
             // File doesn't exist - create it with random string
             const randomString = crypto.randomBytes(32).toString('hex'); // 256 bits = 32 bytes

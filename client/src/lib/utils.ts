@@ -55,7 +55,7 @@ export function calculateClusterCpuUsage(servers: {
         totalCores += server.cores;
     }
 
-    return totalUsage / totalCores;
+    return (totalUsage / totalCores) || 0;
 }
 
 export function getLatestCoreLoad(coreLoad: number[][] | unknown, index: number): string {

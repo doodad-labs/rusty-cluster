@@ -245,12 +245,12 @@
     
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-6 place-items-center w-[1128px] mx-auto pt-4">
 
-    <div class="flex place-items-center gap-4">
+    <div class="grid grid-cols-5 place-items-center gap-6 w-full">
         
         <!-- CPU Usage -->
-        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {combinedCpuLoad()} %
@@ -259,7 +259,7 @@
         </div>
 
         <!-- Memory -->
-        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {bytesToGB(
@@ -275,7 +275,7 @@
         </div>
 
         <!-- Network out -->
-        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(combinedNetworkOut())} OUT
@@ -284,7 +284,7 @@
         </div> 
 
         <!-- Network in -->
-        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(combinedNetworkIn())} IN
@@ -293,7 +293,7 @@
         </div>
 
         <!-- Storage -->
-        <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(
@@ -309,13 +309,13 @@
         
     </div>
     
-    <hr class="border-gray-200" />
+    <hr class="border-gray-200 w-full" />
 
-    <div class="flex gap-3 place-items-start">
-        <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-6 w-full place-items-center">
 
-            {#each Object.values(hosts) as host, i}
+        {#each Object.values(hosts) as host, i}
 
+            <div class="flex flex-col gap-4 w-full">
                 <div class="flex place-items-center justify-between">
                     <h1 class="text-lg font-semibold text-gray-600">
                         <span class="capitalize">
@@ -1010,13 +1010,9 @@
                     </div>
     
                 </div>
+            </div>
 
-                {#if Object.keys(hosts).length !== i+1}
-                <hr class="border-gray-200" />
-                {/if}
-    
-            {/each}
-    
-        </div>
+        {/each}
+
     </div>
 </div>

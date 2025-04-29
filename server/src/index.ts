@@ -1,6 +1,8 @@
 import sysinfo from 'systeminformation';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
+import fs from 'fs/promises';
+import crypto from 'crypto';
 
 const server = createServer();
 const io = new Server(server);
@@ -52,6 +54,32 @@ server.listen(3000, () => {
     console.log('server running at http://localhost:3000');
 });
 
+async function checkAndProcessFile(filePath: string): Promise<void> {
+    try {
+        // Check if file exists
+        await fs.access(filePath);
+
+        // File exists - read and print it
+        const content = await fs.readFile(filePath, 'utf-8');
+        console.log('File content:');
+        console.log(content);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            // File doesn't exist - create it with random string
+            const randomString = crypto.randomBytes(32).toString('hex'); // 256 bits = 32 bytes
+
+            console.log(`File doesn't exist. Creating new file with random string:`);
+            console.log(randomString);
+
+            await fs.writeFile(filePath, randomString, 'utf-8');
+            console.log('File created successfully.');
+        } else {
+            // Other error occurred
+            throw error;
+        }
+    }
+}
+
 function GracefulShutdown() {
     console.log('Gracefully shutting down...');
     clearInterval(clusterInfoInterval); // Clear the interval to stop sending data
@@ -66,3 +94,6 @@ function GracefulShutdown() {
 
 process.on('SIGTERM', GracefulShutdown);
 process.on('SIGINT', GracefulShutdown);
+
+const filePath = 'key.rusty';
+checkAndProcessFile(filePath).catch(err => console.error('Error:', err));

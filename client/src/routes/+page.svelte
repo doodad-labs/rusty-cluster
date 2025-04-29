@@ -19,14 +19,14 @@
         TooltipComponent,
     ]);
 
-    const HISTORY_LENGTH = 75;
+    const { data } = $props();
 
-    const hostAddress: string[] = [
-        
-    ];
+    const HISTORY_LENGTH = 75;
 
     let hosts: {
         [key: string]: {
+
+            id: string;
 
             socket: Socket;
             connected: boolean;
@@ -76,12 +76,14 @@
     } = $state({});
 
     onMount(() => {
-        for (let i = 0; i < hostAddress.length; i++) {
-            const host = hostAddress[i];
+        for (let i = 0; i < data.clusters.length; i++) {
+            const host = data.clusters[i];
 
-            hosts[host] = {
+            hosts[host.id] = {
 
-                socket: io(host, {
+                id: host.id,
+
+                socket: io(host.address, {
                     transports: ["websocket"],
                     autoConnect: true,
                 }),
@@ -90,7 +92,7 @@
                 uptime: 0,
 
                 info: {
-                    address: host,
+                    address: host.address,
                     hostname: "",
                     platform: "",
                     distro: "",
@@ -134,72 +136,72 @@
                 ]
             };
 
-            hosts[host].socket.on("connect", () => {
-                hosts[host].connected = true;
+            hosts[host.id].socket.on("connect", () => {
+                hosts[host.id].connected = true;
             });
 
-            hosts[host].socket.on("disconnect", () => {
-                hosts[host].connected = false;
+            hosts[host.id].socket.on("disconnect", () => {
+                hosts[host.id].connected = false;
             });
 
-            hosts[host].socket.on("osInfo", (data) => {
-                hosts[host].info.hostname = data.hostname
-                hosts[host].info.platform = data.platform;
-                hosts[host].info.distro = data.distro;
-                hosts[host].info.release = data.release;
-                hosts[host].info.kernel = data.kernel;
+            hosts[host.id].socket.on("osInfo", (data) => {
+                hosts[host.id].info.hostname = data.hostname
+                hosts[host.id].info.platform = data.platform;
+                hosts[host.id].info.distro = data.distro;
+                hosts[host.id].info.release = data.release;
+                hosts[host.id].info.kernel = data.kernel;
             })
 
-            hosts[host].socket.on("clusterInfo", (data) => {
+            hosts[host.id].socket.on("clusterInfo", (data) => {
 
-                hosts[host].uptime = data.uptime || 0;
+                hosts[host.id].uptime = data.uptime || 0;
 
-                hosts[host].coreLoad.push(data.cpus);
-                if (hosts[host].coreLoad.length > HISTORY_LENGTH) {
-                    hosts[host].coreLoad.shift();
+                hosts[host.id].coreLoad.push(data.cpus);
+                if (hosts[host.id].coreLoad.length > HISTORY_LENGTH) {
+                    hosts[host.id].coreLoad.shift();
                 }
 
-                hosts[host].cpuLoad.push(parseFloat(data.currentLoad) || 0);
-                if (hosts[host].cpuLoad.length > HISTORY_LENGTH) {
-                    hosts[host].cpuLoad.shift();
+                hosts[host.id].cpuLoad.push(parseFloat(data.currentLoad) || 0);
+                if (hosts[host.id].cpuLoad.length > HISTORY_LENGTH) {
+                    hosts[host.id].cpuLoad.shift();
                 }
 
-                hosts[host].cpuTemp.push(parseFloat(data.temp) || 0);
-                if (hosts[host].cpuTemp.length > HISTORY_LENGTH) {
-                    hosts[host].cpuTemp.shift();
+                hosts[host.id].cpuTemp.push(parseFloat(data.temp) || 0);
+                if (hosts[host.id].cpuTemp.length > HISTORY_LENGTH) {
+                    hosts[host.id].cpuTemp.shift();
                 }
 
-                hosts[host].memory.total = parseFloat(data.memory.total) || 0;
+                hosts[host.id].memory.total = parseFloat(data.memory.total) || 0;
 
-                hosts[host].memory.used.push(parseFloat(data.memory.used) || 0);
-                if (hosts[host].memory.used.length > HISTORY_LENGTH) {
-                    hosts[host].memory.used.shift();
+                hosts[host.id].memory.used.push(parseFloat(data.memory.used) || 0);
+                if (hosts[host.id].memory.used.length > HISTORY_LENGTH) {
+                    hosts[host.id].memory.used.shift();
                 }
 
-                hosts[host].memory.free.push(parseFloat(data.memory.free) || 0);
-                if (hosts[host].memory.free.length > HISTORY_LENGTH) {
-                    hosts[host].memory.free.shift();
+                hosts[host.id].memory.free.push(parseFloat(data.memory.free) || 0);
+                if (hosts[host.id].memory.free.length > HISTORY_LENGTH) {
+                    hosts[host.id].memory.free.shift();
                 }
 
-                hosts[host].network.rx.push(data.network.map((i: { rx_sec: number }) => i.rx_sec || 0).reduce((a: number, b: number) => a + b, 0));
-                if (hosts[host].network.rx.length > HISTORY_LENGTH) {
-                    hosts[host].network.rx.shift();
+                hosts[host.id].network.rx.push(data.network.map((i: { rx_sec: number }) => i.rx_sec || 0).reduce((a: number, b: number) => a + b, 0));
+                if (hosts[host.id].network.rx.length > HISTORY_LENGTH) {
+                    hosts[host.id].network.rx.shift();
                 }
 
-                hosts[host].network.tx.push({
+                hosts[host.id].network.tx.push({
                     timestamp: Date.now(),
                     value: data.network.map((i: { tx_sec: number }) => i.tx_sec || 0).reduce((a: number, b: number) => a + b, 0)
                 });
-                if (hosts[host].network.tx.length > HISTORY_LENGTH) {
-                    hosts[host].network.tx.shift();
+                if (hosts[host.id].network.tx.length > HISTORY_LENGTH) {
+                    hosts[host.id].network.tx.shift();
                 }
 
-                hosts[host].network.ms.push(data.network[0].speed || 0);
-                if (hosts[host].network.ms.length > HISTORY_LENGTH) {
-                    hosts[host].network.ms.shift();
+                hosts[host.id].network.ms.push(data.network[0].speed || 0);
+                if (hosts[host.id].network.ms.length > HISTORY_LENGTH) {
+                    hosts[host.id].network.ms.shift();
                 }
 
-                hosts[host].storage = data.storage.map((i: { size: number; used: number; free: number }) => {
+                hosts[host.id].storage = data.storage.map((i: { size: number; used: number; free: number }) => {
                     return {
                         size: i.size,
                         used: i.used,
@@ -207,14 +209,14 @@
                     };
                 });
 
-                hosts[host].storageStats.read.push(data.fsStats.read || 0);
-                if (hosts[host].storageStats.read.length > HISTORY_LENGTH) {
-                    hosts[host].storageStats.read.shift();
+                hosts[host.id].storageStats.read.push(data.fsStats.read || 0);
+                if (hosts[host.id].storageStats.read.length > HISTORY_LENGTH) {
+                    hosts[host.id].storageStats.read.shift();
                 }
 
-                hosts[host].storageStats.write.push(data.fsStats.write || 0);
-                if (hosts[host].storageStats.write.length > HISTORY_LENGTH) {
-                    hosts[host].storageStats.write.shift();
+                hosts[host.id].storageStats.write.push(data.fsStats.write || 0);
+                if (hosts[host.id].storageStats.write.length > HISTORY_LENGTH) {
+                    hosts[host.id].storageStats.write.shift();
                 }
 
             });
@@ -321,7 +323,7 @@
 
             <div class="flex flex-col gap-4 w-full">
                 <div class="flex place-items-center justify-between">
-                    <h1 class="text-lg font-semibold text-gray-600">
+                    <a href="/cluster/{host.id}" class="text-lg font-semibold text-gray-600 hover:underline after:content-['_↗']">
                         <span class="capitalize">
                             {host.info.hostname}
                         </span>
@@ -342,7 +344,7 @@
 
                         uptime
 
-                    </h1>
+                    </a>
 
                     <div>
 

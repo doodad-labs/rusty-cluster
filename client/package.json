@@ -17,6 +17,7 @@
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@tailwindcss/vite": "^4.0.0",
 		"echarts": "^5.6.0",
+		"prisma": "^6.6.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"svelte-echarts": "^1.0.0",
@@ -25,6 +26,7 @@
 		"vite": "^6.2.6"
 	},
 	"dependencies": {
+		"@prisma/client": "^6.7.0",
 		"socket.io-client": "^4.8.1"
 	}
 }

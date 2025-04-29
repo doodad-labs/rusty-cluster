@@ -1,0 +1,23 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Cluster {
+  id        String   @id @default(cuid())
+
+  name      String
+  address   String
+  key      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

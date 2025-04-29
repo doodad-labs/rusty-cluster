@@ -51,3 +51,18 @@ const clusterInfoInterval = setInterval(async () => {
 server.listen(3000, () => {
     console.log('server running at http://localhost:3000');
 });
+
+function GracefulShutdown() {
+    console.log('Gracefully shutting down...');
+    clearInterval(clusterInfoInterval); // Clear the interval to stop sending data
+    io.close(() => {
+        console.log('Socket.io server closed.');
+        server.close(() => {
+            console.log('HTTP server closed.');
+            process.exit(0); // Exit the process
+        });
+    });
+}
+
+process.on('SIGTERM', GracefulShutdown);
+process.on('SIGINT', GracefulShutdown);

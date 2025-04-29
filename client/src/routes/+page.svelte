@@ -2,7 +2,7 @@
     import { io } from "socket.io-client";
     import type { Socket } from "socket.io-client";
     import { onMount } from "svelte";
-    import { clampNumber, getColour, bytesToGB, calculateClusterCpuUsage, getLatestCoreLoad, formatBytes } from "$lib/utils";
+    import { formatUptime, clampNumber, getColour, bytesToGB, calculateClusterCpuUsage, getLatestCoreLoad, formatBytes } from "$lib/utils";
     import inViewAction from '$lib/inViewAction';
 
     import { Chart } from "svelte-echarts";
@@ -30,6 +30,7 @@
 
             socket: Socket;
             connected: boolean;
+            uptime: number;
 
             info: {
                 address: string;
@@ -86,6 +87,7 @@
                 }),
 
                 connected: false,
+                uptime: 0,
 
                 info: {
                     address: host,
@@ -149,6 +151,8 @@
             })
 
             hosts[host].socket.on("clusterInfo", (data) => {
+
+                hosts[host].uptime = data.uptime || 0;
 
                 hosts[host].coreLoad.push(data.cpus);
                 if (hosts[host].coreLoad.length > HISTORY_LENGTH) {
@@ -245,12 +249,12 @@
     
 </script>
 
-<div class="flex flex-col gap-6 place-items-center w-[1128px] mx-auto pt-4">
+<div class="flex flex-col gap-6 place-items-center w-full max-w-[1128px] mx-auto pt-4">
 
-    <div class="grid grid-cols-5 place-items-center gap-6 w-full">
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 place-items-center gap-4 w-full">
         
         <!-- CPU Usage -->
-        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {combinedCpuLoad()} %
@@ -259,7 +263,7 @@
         </div>
 
         <!-- Memory -->
-        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {bytesToGB(
@@ -275,7 +279,7 @@
         </div>
 
         <!-- Network out -->
-        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(combinedNetworkOut())} OUT
@@ -284,7 +288,7 @@
         </div> 
 
         <!-- Network in -->
-        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(combinedNetworkIn())} IN
@@ -293,7 +297,7 @@
         </div>
 
         <!-- Storage -->
-        <div class="flex justify-center place-items-center relative w-full h-22 border bg-white border-gray-200 rounded-md">
+        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
             <span class="text-xl font-bold text-gray-900">
                 {formatBytes(
@@ -331,6 +335,13 @@
                         {host.info.platform}
     
                         ({host.info.distro} {host.info.release})
+
+                        |
+
+                        {formatUptime(host.uptime)}
+
+                        uptime
+
                     </h1>
 
                     <div>
@@ -350,7 +361,7 @@
 
                 </div>
 
-                <div class="flex place-items-start gap-4">
+                <div class="grid grid-cols-1 xl:grid-cols-[450px_auto] gap-4">
                     
                     <div 
                         use:inViewAction={{ threshold: 0.2, trackExit: true }}
@@ -360,62 +371,61 @@
                         onexitView={()=>{
                             host.showCharts[8] = false
                         }}
-                        class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">
+                        class="flex flex-col gap-4 w-full border bg-white border-gray-200 rounded-md p-4">
                         
-                        {#if host.showCharts[8]}
-                            <Chart
-                                class="h-45"
-                                {init}
-                                options={{
-                                    xAxis: {
-                                        show: true,
-                                        boundaryGap: false,
-                                        data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                        axisTick: { show: false },
-                                    },
-                                    yAxis: {
-                                        type: "value",
-                                        axisLabel: {
-                                            formatter: "{value} %",
+                        <div class="h-25">
+                            {#if host.showCharts[8]}
+                                <Chart
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: true,
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
                                         },
-                                        axisTick: { show: false }, // Hide y-axis ticks
-                                        show: true, // Hide y-axis
-                                        min: 0, // Fix baseline at 0 for consistency
-                                        max: clampNumber(
-                                            Math.max(...host.coreLoad.map((cpu) => cpu[0])) + 20,
-                                            30,
-                                            100,
-                                        ),
-                                    },
-                                    grid: {
-                                        top: 5, // Minimal padding
-                                        right: 0,
-                                        bottom: 2,
-                                        left: 0,
-                                    },
-                                    series: Array.from({ length: host.coreLoad.length }, (_, i) => ({
-                                        // Assuming 4 cores
-                                        data: host.coreLoad.map((cpu) =>
-                                            clampNumber(cpu[i], 0, 100),
-                                        ),
-                                        color: getColour(i), // Use a function to get the color
-                                        type: "line",
-                                        symbol: "none", // No data points
-                                        lineStyle: {
-                                            width: 1.2, // Slightly thicker line
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: true, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: clampNumber(
+                                                Math.max(...host.coreLoad.map((cpu) => cpu[0])) + 20,
+                                                30,
+                                                100,
+                                            ),
                                         },
-                                        areaStyle: {
-                                            opacity: 0.15, // Subtle fill
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
                                         },
-                                        smooth: 0, // Mild smoothing (0 to 1)
-                                    })),
-                                    tooltip: { show: false }, // Disable tooltips
-                                    animation: false, // Avoid distracting animation
-                                }}
-                            />
-                        {:else}
-                            <div class="h-45"></div>
-                        {/if}
+                                        series: Array.from({ length: host.coreLoad.length }, (_, i) => ({
+                                            // Assuming 4 cores
+                                            data: host.coreLoad.map((cpu) =>
+                                                clampNumber(cpu[i], 0, 100),
+                                            ),
+                                            color: getColour(i), // Use a function to get the color
+                                            type: "line",
+                                            symbol: "none", // No data points
+                                            lineStyle: {
+                                                width: 1.2, // Slightly thicker line
+                                            },
+                                            areaStyle: {
+                                                opacity: 0.15, // Subtle fill
+                                            },
+                                            smooth: 0, // Mild smoothing (0 to 1)
+                                        })),
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+                        </div>
     
                         <table class="min-w-full divide-y-2 divide-gray-200">
                             <thead class="ltr:text-left rtl:text-right">
@@ -468,545 +478,542 @@
                         </table>
                     </div>
     
-                    <div class="flex gap-4 place-items-start">
-                        <div class="flex flex-col gap-4">
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[0] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[0] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[0]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
+                    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 w-full sm:place-content-baseline">
+                        
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[0] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[0] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[0]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
                                             },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: clampNumber(
+                                                Math.max(...host.cpuLoad) + 5,
+                                                5,
+                                                100,
+                                            ),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
+                                                color: "#158c62", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: clampNumber(
-                                                    Math.max(...host.cpuLoad) + 5,
-                                                    5,
-                                                    100,
-                                                ),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.cpuLoad.map(load => clampNumber(load, 0, 100)),
-                                                    color: "#158c62", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)} %
-                                </span>
-                            
-                            </div>
-                
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[1] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[1] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                                
-                                {#if host.showCharts[1]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
-                                            },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.cpuTemp, 100),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.cpuTemp,
-                                                    color: "#2a158c", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
-                                </span>
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {(host.cpuLoad.length > 1 ? host.cpuLoad[host.cpuLoad.length - 1] : 0).toFixed(2)} %
+                            </span>
+                        
+                        </div>
+            
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[1] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[1] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
                             
-                            </div>
-        
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[2] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[2] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                                
-                                {#if host.showCharts[2]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
+                            {#if host.showCharts[1]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
                                             },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.cpuTemp, 100),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.cpuTemp,
+                                                color: "#2a158c", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: host.memory.total,
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.memory.used,
-                                                    color: "#a00c0c", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {bytesToGB(host.memory.used.length > 1 ? host.memory.used[host.memory.used.length - 1] : 0)}
-                                    /
-                                    {bytesToGB(host.memory.total)}
-                                    GB
-                                </span>
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {(host.cpuTemp.length > 1 ? host.cpuTemp[host.cpuLoad.length - 1] : 0).toFixed(2)} °C
+                            </span>
+                        
+                        </div>
+    
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[2] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[2] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
                             
-                            </div>
+                            {#if host.showCharts[2]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: host.memory.total,
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.memory.used,
+                                                color: "#a00c0c", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {bytesToGB(host.memory.used.length > 1 ? host.memory.used[host.memory.used.length - 1] : 0)}
+                                /
+                                {bytesToGB(host.memory.total)}
+                                GB
+                            </span>
+                        
+                        </div>
+                    
+
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[3] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[3] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[3]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.ms) + (Math.max(...host.network.ms) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.ms,
+                                                color: "#0d3f89", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {(host.network.ms.length > 1 ? host.network.ms[host.network.ms.length - 1] : 0).toFixed(0) } ms
+                            </span>
+                        
                         </div>
 
-                        <div class="flex flex-col gap-4">
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[3] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[3] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[3]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[4] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[4] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[4]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
                                             },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.rx) + (Math.max(...host.network.rx) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.rx,
+                                                color: "#dd30cc", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.network.ms) + (Math.max(...host.network.ms) / 5),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.network.ms,
-                                                    color: "#0d3f89", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {(host.network.ms.length > 1 ? host.network.ms[host.network.ms.length - 1] : 0).toFixed(0) } ms
-                                </span>
-                            
-                            </div>
-
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[4] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[4] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[4]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
-                                            },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.network.rx) + (Math.max(...host.network.rx) / 5),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.network.rx,
-                                                    color: "#dd30cc", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} In
-                                </span>
-                            
-                            </div>
-
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[5] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[5] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[5]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
-                                            },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
-                                                },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.network.tx.map((tx) => tx.value)) + (Math.max(...host.network.tx.map((tx) => tx.value)) / 5),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.network.tx,
-                                                    color: "#04aaf7", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1]?.value : 0)} Out
-                                </span>
-                            
-                            </div>
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] : 0)} In
+                            </span>
+                        
                         </div>
 
-                        <div class="flex flex-col gap-4">
-                            
-                            <div class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.storage.reduce((acc, storage) => acc + storage.used, 0))} 
-                                    /
-                                    {formatBytes(host.storage.reduce((acc, storage) => acc + storage.size, 0))} 
-                                </span>
-                            
-                            </div>
-
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[6] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[6] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[6]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[5] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[5] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[5]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
                                             },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.network.tx.map((tx) => tx.value)) + (Math.max(...host.network.tx.map((tx) => tx.value)) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.network.tx,
+                                                color: "#04aaf7", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.storageStats.read) + (Math.max(...host.storageStats.read) / 5),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.storageStats.read,
-                                                    color: "#b639f9", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.storageStats.read.length > 1 ? host.storageStats.read[host.storageStats.read.length - 1] : 0)}
-                                    Read
-                                </span>
-                            
-                            </div>
-
-                            <div 
-                                use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                                onenterView={(e)=>{
-                                    host.showCharts[7] = true
-                                }}
-                                onexitView={(e)=>{
-                                    host.showCharts[7] = false
-                                }}
-                                class="flex justify-center place-items-center relative w-50 h-22 border bg-white border-gray-200 rounded-md">
-                            
-                                {#if host.showCharts[7]}
-                                    <Chart
-                                        class="absolute top-0 left-0 w-full h-full opacity-30"
-                                        {init}
-                                        options={{
-                                            xAxis: {
-                                                show: false, // Hide x-axis
-                                                boundaryGap: false,
-                                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
-                                                axisTick: { show: false },
-                                            },
-                                            yAxis: {
-                                                type: "value",
-                                                axisLabel: {
-                                                    formatter: "{value} %",
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
                                                 },
-                                                axisTick: { show: false }, // Hide y-axis ticks
-                                                show: false, // Hide y-axis
-                                                min: 0, // Fix baseline at 0 for consistency
-                                                max: Math.max(...host.storageStats.write) + (Math.max(...host.storageStats.write) / 5),
-                                            },
-                                            grid: {
-                                                top: 5, // Minimal padding
-                                                right: 0,
-                                                bottom: 2,
-                                                left: 0,
-                                            },
-                                            series: [
-                                                {
-                                                    data: host.storageStats.write,
-                                                    color: "#00729b", // Use a function to get the color
-                                                    type: "line",
-                                                    symbol: "none", // No data points
-                                                    lineStyle: {
-                                                        width: 1.2, // Slightly thicker line
-                                                    },
-                                                    areaStyle: {
-                                                        opacity: 0.15, // Subtle fill
-                                                    },
-                                                    smooth: 0, // Mild smoothing (0 to 1)
-                                                }
-                                            ],
-                                            tooltip: { show: false }, // Disable tooltips
-                                            animation: false, // Avoid distracting animation
-                                        }}
-                                    />
-                                {/if}
-                
-                                <span class="text-xl font-bold text-gray-900">
-                                    {formatBytes(host.storageStats.write.length > 1 ? host.storageStats.write[host.storageStats.write.length - 1] : 0)}
-                                    Write
-                                </span>
-                            
-                            </div>
-
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1]?.value : 0)} Out
+                            </span>
+                        
                         </div>
+                    
+
+                        
+                        <div class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(host.storage.reduce((acc, storage) => acc + storage.used, 0))} 
+                                /
+                                {formatBytes(host.storage.reduce((acc, storage) => acc + storage.size, 0))} 
+                            </span>
+                        
+                        </div>
+
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[6] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[6] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[6]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.storageStats.read) + (Math.max(...host.storageStats.read) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.storageStats.read,
+                                                color: "#b639f9", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(host.storageStats.read.length > 1 ? host.storageStats.read[host.storageStats.read.length - 1] : 0)}
+                                Read
+                            </span>
+                        
+                        </div>
+
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                host.showCharts[7] = true
+                            }}
+                            onexitView={(e)=>{
+                                host.showCharts[7] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if host.showCharts[7]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...host.storageStats.write) + (Math.max(...host.storageStats.write) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: host.storageStats.write,
+                                                color: "#00729b", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(host.storageStats.write.length > 1 ? host.storageStats.write[host.storageStats.write.length - 1] : 0)}
+                                Write
+                            </span>
+                        
+                        </div>
+
                     </div>
     
                 </div>

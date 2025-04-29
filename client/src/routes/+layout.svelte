@@ -5,7 +5,7 @@
 </script>
 
 <div class="flex h-screen w-screen bg-gray-50/25">
-	<div class="w-50 flex h-screen flex-col justify-between border-e border-gray-100 bg-white">
+	<div class="hidden sm:flex w-50 h-screen flex-col justify-between border-e border-gray-100 bg-white">
 		<div class="px-4 py-6">
 			<span
 				class="flex h-10 w-full place-content-center"
@@ -87,7 +87,7 @@
 
 	</div>
 	
-	<div class="p-4 h-screen overflow-y-auto grow">
+	<div class="p-6 sm:p-4 h-screen overflow-y-auto grow">
 		{@render children()}
 	</div>
 </div>

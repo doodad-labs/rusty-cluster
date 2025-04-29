@@ -78,3 +78,37 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
 
     return `${formattedValue} ${sizes[i]}`;
 }
+
+export function formatUptime(seconds: number): string {
+    if (seconds < 0) return "Invalid uptime";
+    if (seconds === 0) return "0 seconds";
+    
+    const timeUnits = [
+        { name: 'year', seconds: 31536000 },
+        { name: 'month', seconds: 2592000 }, // Approximate (30 days)
+        { name: 'week', seconds: 604800 },
+        { name: 'day', seconds: 86400 },
+        { name: 'hour', seconds: 3600 },
+        { name: 'minute', seconds: 60 },
+        { name: 'second', seconds: 1 }
+    ];
+    
+    let remaining = seconds;
+    const parts: string[] = [];
+    
+    for (const unit of timeUnits) {
+        if (remaining >= unit.seconds) {
+            const count = Math.floor(remaining / unit.seconds);
+            remaining %= unit.seconds;
+            
+            parts.push(`${count} ${unit.name}${count !== 1 ? 's' : ''}`);
+            
+            // Stop after we've added 2 units for better readability
+            if (parts.length >= 2) {
+                break;
+            }
+        }
+    }
+    
+    return parts.join(' ');
+}

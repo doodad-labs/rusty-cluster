@@ -12,6 +12,7 @@ const io = new Server(server);
 
 io.use((socket, next) => {
     const token = socket.handshake.auth.token; // Get the token from the handshake
+    console.log(socket.handshake.auth, token)
 
     if (token === key) { // Compare with the key
         next(); // Token is valid, proceed to the connection

@@ -7,6 +7,7 @@ export const load: PageServerLoad = async ({ params }) => {
         select: {
             id: true,
             address: true,
+            key: true,
         }
     }).catch((err: string) => {
         console.error('Error fetching hosts:', err);

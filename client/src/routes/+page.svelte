@@ -86,6 +86,9 @@
                 socket: io(host.address, {
                     transports: ["websocket"],
                     autoConnect: true,
+                    auth: (cb) => {
+                        cb({ token: host.key });
+                    }
                 }),
 
                 connected: false,

@@ -1,26 +1,30 @@
-/**
- * @typedef {Object} InViewOptions
- * @property {number} [threshold=0.1] - % of element visibility required
- * @property {boolean} [once=false] - Trigger only once
- * @property {boolean} [trackExit=false] - Enable exit callbacks
- */
+import type { ActionReturn } from 'svelte/action';
 
-/**
- * @param {HTMLElement} node
- * @param {InViewOptions} [options]
- */
-export default function inViewAction(node, options = {}) {
-    const { threshold = 0.1, once = false, trackExit = false } = options;
-    let observer;
+type InViewOptions = {
+    threshold?: number;
+    once?: boolean;
+    trackExit?: boolean;
+};
 
-    const handleIntersect = (entries) => {
+type InViewAttributes = {
+    'onenterView'?: (e: CustomEvent<void>) => void;
+    'onexitView'?: (e: CustomEvent<void>) => void;
+};
+
+export default function inViewAction(
+    node: HTMLElement,
+    options: InViewOptions = {}
+): ActionReturn<InViewOptions, InViewAttributes> {
+    let { threshold = 0.1, once = false, trackExit = false } = options;
+    let observer: IntersectionObserver | undefined;
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
         const [entry] = entries;
 
         if (entry.isIntersecting) {
             node.dispatchEvent(new CustomEvent('enterView'));
             if (once) observer?.unobserve(node);
-        }
-        else if (trackExit) {
+        } else if (trackExit) {
             node.dispatchEvent(new CustomEvent('exitView'));
         }
     };
@@ -29,7 +33,7 @@ export default function inViewAction(node, options = {}) {
     observer.observe(node);
 
     return {
-        update(newOptions) {
+        update(newOptions: InViewOptions) {
             observer?.unobserve(node);
             ({ threshold = 0.1, once = false, trackExit = false } = newOptions);
             observer = new IntersectionObserver(handleIntersect, { threshold });

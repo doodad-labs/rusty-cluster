@@ -354,10 +354,10 @@
                     
                     <div 
                         use:inViewAction={{ threshold: 0.2, trackExit: true }}
-                        onenterView={(e)=>{
+                        onenterView={()=>{
                             host.showCharts[8] = true
                         }}
-                        onexitView={(e)=>{
+                        onexitView={()=>{
                             host.showCharts[8] = false
                         }}
                         class="flex flex-col gap-4 w-120 border bg-white border-gray-200 rounded-md p-4">

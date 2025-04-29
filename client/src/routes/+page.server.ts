@@ -1,7 +1,7 @@
 import db from '$lib/server/database';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async () => {
 
     const clusters = await db.cluster.findMany({
         select: {

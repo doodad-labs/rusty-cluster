@@ -1,7 +1,9 @@
 <script lang="ts">
+    import { goto, invalidateAll } from "$app/navigation";
+    import { page } from "$app/state";
 	import "../app.css";
 
-	let { children } = $props();
+	let { data, children } = $props();
 </script>
 
 <div class="flex h-screen w-screen bg-gray-50/25">
@@ -16,11 +18,20 @@
 			<ul class="mt-6 space-y-1">
 
 				<li>
+					<a
+						href="/"
+						class="{page.url.pathname === '/' ? 'bg-gray-100' : ''} block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+					>
+						Overview
+					</a>
+				</li>
+
+				<li>
 					<details
 						class="group [&_summary::-webkit-details-marker]:hidden"
 					>
 						<summary
-							class="bg-gray-100 flex cursor-pointer items-center justify-between rounded-lg px-4 py-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+							class="{page.url.pathname.startsWith('/cluster/') ? 'bg-gray-100' : ''} flex cursor-pointer items-center justify-between rounded-lg px-4 py-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
 						>
 							<span class="text-sm font-medium"> Clusters </span>
 
@@ -43,39 +54,24 @@
 						</summary>
 
 						<ul class="mt-2 space-y-1 px-4">
-							<li>
-								<a
-									href="#"
-									class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-								>
-									Banned Users
-								</a>
-							</li>
 
-							<li>
-								<a
-									href="#"
-									class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-								>
-									Calendar
-								</a>
-							</li>
+							{#each data.layout.clusters as cluster}
+								<li>
+									<a
+										href="/cluster/{cluster.id}"
+										class="{page.url.pathname.startsWith(`/cluster/${cluster.id}`) ? 'bg-gray-100' : ''} block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 capitalize"
+									>
+										{cluster.name}
+									</a>
+								</li>
+							{/each}
 						</ul>
 					</details>
 				</li>
 
 				<li>
 					<a
-						href="#"
-						class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-					>
-						Docker Containers
-					</a>
-				</li>
-
-				<li>
-					<a
-						href="#"
+						href="/"
 						class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
 					>
 						Settings
@@ -88,6 +84,12 @@
 	</div>
 	
 	<div class="p-6 sm:p-4 h-screen overflow-y-auto grow">
-		{@render children()}
+		{#if page.url.pathname.startsWith(`/cluster/`)}
+			{#key page.url.pathname}
+				{@render children()}
+			{/key}
+		{:else}
+			{@render children()}
+		{/if}
 	</div>
 </div>

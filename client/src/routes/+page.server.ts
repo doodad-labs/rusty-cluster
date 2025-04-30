@@ -15,13 +15,11 @@ export const load: PageServerLoad = async () => {
         return [];
     })
 
+    for (let i = 0; i < clusters.length; i++) {
+        clusters[i].key = await argon2.hash(clusters[i].key);
+    }
+
 	return {
-		clusters: clusters.map(async (cluster) => {
-            return {
-                id: cluster.id,
-                address: cluster.address,
-                key: await argon2.hash(cluster.key)
-            }
-        })
+		clusters
 	};
 };

@@ -21,7 +21,7 @@
 
     const { data } = $props();
 
-    const HISTORY_LENGTH = 150;
+    const HISTORY_LENGTH = 75;
 
     let invalidKey: boolean = $state(false);
 
@@ -158,7 +158,7 @@
             host.uptime = data.uptime || 0;
 
             host.coreLoad.push(data.cpus);
-            if (host.coreLoad.length > HISTORY_LENGTH) {
+            if (host.coreLoad.length > 150) {
                 host.coreLoad.shift();
             }
 
@@ -288,7 +288,7 @@
             <!-- CPU Usage -->
             <div class="flex flex-col gap-1.5 w-full">
                 <span class="text-sm text-black/50">
-                    Total Network In
+                    CPU Load
                 </span>
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
@@ -643,7 +643,7 @@
                             xAxis: {
                                 show: true,
                                 boundaryGap: false,
-                                data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                data: Array.from({ length: 150 }, () => ""), // Match last 50 data points
                                 axisTick: { show: false },
                             },
                             yAxis: {

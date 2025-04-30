@@ -52,12 +52,16 @@
         }
 
         network: {
-            rx: number[],
-            tx: number[],
-            ms: number[],
-        },
+                name: number[]
+                rx: number[],
+                tx: number[],
+                ms: number[],
+        }[],
 
         storage: {
+            name: string;
+            type: string;
+            mount: string;
             size: number;
             used: number;
             free: number;
@@ -94,12 +98,7 @@
             free: [],
         },
 
-        network: {
-            rx: [],
-            tx: [],
-            ms: [],
-        },
-
+        network: [],
         storage: [],
 
         storageStats: {
@@ -184,28 +183,105 @@
                 host.memory.free.shift();
             }
 
-            host.network.rx.push(data.network.map((i: { rx_sec: number }) => i.rx_sec || 0).reduce((a: number, b: number) => a + b, 0));
-            if (host.network.rx.length > HISTORY_LENGTH) {
-                host.network.rx.shift();
+            for (let i = 0; i < data.network.length; i++) {
+                const network = data.network[i];
+
+                console.log(network)
+
+                if (host.network[network.name] === undefined) {
+                    host.network[network.name] = {
+                        name: network.name,
+                        rx: [],
+                        tx: [],
+                        ms: [],
+                    };
+                }
+
+                host.network[network.name].rx.push(data.network.map((i: { rx_sec: number }) => i.rx_sec || 0).reduce((a: number, b: number) => a + b, 0));
+                if (host.network[network.name].rx.length > HISTORY_LENGTH) {
+                    host.network[network.name].rx.shift();
+                }
+
+                host.network[network.name].tx.push(data.network.map((i: { tx_sec: number }) => i.tx_sec || 0).reduce((a: number, b: number) => a + b, 0));
+                if (host.network[network.name].tx.length > HISTORY_LENGTH) {
+                    host.network[network.name].tx.shift();
+                }
+
+                host.network[network.name].ms.push(data.network[0].speed || 0);
+                if (host.network[network.name].ms.length > HISTORY_LENGTH) {
+                    host.network[network.name].ms.shift();
+                }
             }
 
-            host.network.tx.push(data.network.map((i: { tx_sec: number }) => i.tx_sec || 0).reduce((a: number, b: number) => a + b, 0));
-            if (host.network.tx.length > HISTORY_LENGTH) {
-                host.network.tx.shift();
+            /* 
+                Remove network that is not in the data anymore, this is to prevent the UI from showing old data. 
+            */
+
+            for (let i = 0; i < host.network.length; i++) {
+                const network = host.network[i];
+                let found = false;
+
+                for (let j = 0; j < data.network.length; j++) {
+                    
+                    const networkData = data.network[j];
+
+                    if (network.name === networkData.name) {
+                        found = true;
+                    }
+                    
+                }
+
+                if (!found) {
+                    host.network.splice(i, 1);
+                    i--;
+                }
+
             }
 
-            host.network.ms.push(data.network[0].speed || 0);
-            if (host.network.ms.length > HISTORY_LENGTH) {
-                host.network.ms.shift();
+
+            for (let i = 0; i < data.storage.length; i++) {
+                const storage = data.storage[i];
+
+                if (host.storage[storage.name] === undefined) {
+                    host.storage[storage.name] = {
+                        name: storage.name,
+                        type: storage.type,
+                        mount: storage.mount,
+                        size: 0,
+                        used: 0,
+                        free: 0,
+                    };
+                }
+
+                host.storage[storage.name].size = parseFloat(storage.size) || 0;
+                host.storage[storage.name].used = parseFloat(storage.used) || 0;
+                host.storage[storage.name].free = parseFloat(storage.free) || 0;
             }
 
-            host.storage = data.storage.map((i: { size: number; used: number; free: number }) => {
-                return {
-                    size: i.size,
-                    used: i.used,
-                    free: i.free,
-                };
-            });
+            /* 
+            Remove storage that is not in the data anymore, this is to prevent the UI from showing old data. 
+            */
+            for (let i = 0; i < host.storage.length; i++) {
+                const storage = host.storage[i];
+                let found = false;
+
+                for (let j = 0; j < data.storage.length; j++) {
+                    
+                    const storageData = data.storage[j];
+
+                    if (storage.name === storageData.name) {
+                        found = true;
+                    }
+                    
+                }
+
+                if (!found) {
+                    host.storage.splice(i, 1);
+                    i--;
+                }
+
+            }
+
 
             host.storageStats.read.push(data.fsStats.read || 0);
             if (host.storageStats.read.length > HISTORY_LENGTH) {
@@ -452,8 +528,10 @@
                         showCharts[3] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
-        
+    
+
                     {#if showCharts[3]}
+
                         <Chart
                             class="absolute top-0 left-0 w-full h-full opacity-30"
                             {init}
@@ -461,7 +539,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: host.network.tx.length }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: Object.values(host.network).length > 0 ? Object.values(host.network)[0].tx.length : 0 }, () => ""),
                                     axisTick: { show: false },
                                 },
                                 yAxis: {
@@ -472,7 +550,7 @@
                                     axisTick: { show: false }, // Hide y-axis ticks
                                     show: false, // Hide y-axis
                                     min: 0, // Fix baseline at 0 for consistency
-                                    max: Math.max(...host.network.tx.map((tx) => tx)) + (Math.max(...host.network.tx.map((tx) => tx)) / 5),
+                                    max: Math.max(...Object.values(host.network).map((i: { tx: number[] }) => Math.max(...i.tx))) + (Math.max(...Object.values(host.network).map((i: { tx: number[] }) => Math.max(...i.tx))) / 5),
                                 },
                                 grid: {
                                     top: 5, // Minimal padding
@@ -482,7 +560,7 @@
                                 },
                                 series: [
                                     {
-                                        data: host.network.tx,
+                                        data: Object.values(host.network).map((i: { tx: number[] }) => i.tx).reduce((a: number[], b: number[]) => a.concat(b), []),
                                         color: "#04aaf7", // Use a function to get the color
                                         type: "line",
                                         symbol: "none", // No data points
@@ -503,7 +581,11 @@
 
                     <span class="text-xl font-bold text-gray-900">
                         {formatBytes(
-                            host.network.tx.length > 1 ? host.network.tx[host.network.tx.length - 1] || 0 : 0
+                            Object.values(host.network)
+                            .map(network => network.tx)
+                            .reduce((a: number[], b: number[]) => a.concat(b), [])
+                            .at(-1) || 0
+                            
                         )} OUT
                     </span>
                 
@@ -533,7 +615,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: host.network.rx.length }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: Object.values(host.network).length > 0 ? Object.values(host.network)[0].rx.length : 0 }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
                                 },
                                 yAxis: {
@@ -544,7 +626,7 @@
                                     axisTick: { show: false }, // Hide y-axis ticks
                                     show: false, // Hide y-axis
                                     min: 0, // Fix baseline at 0 for consistency
-                                    max: Math.max(...host.network.rx) + (Math.max(...host.network.rx) / 5),
+                                    max: Math.max(...Object.values(host.network).map((i: { rx: number[] }) => Math.max(...i.rx))) + (Math.max(...Object.values(host.network).map((i: { rx: number[] }) => Math.max(...i.rx))) / 5),
                                 },
                                 grid: {
                                     top: 5, // Minimal padding
@@ -554,7 +636,7 @@
                                 },
                                 series: [
                                     {
-                                        data: host.network.rx,
+                                        data: Object.values(host.network).map((i: { rx: number[] }) => i.rx).reduce((a: number[], b: number[]) => a.concat(b), []),
                                         color: "#dd30cc", // Use a function to get the color
                                         type: "line",
                                         symbol: "none", // No data points
@@ -575,7 +657,11 @@
 
                     <span class="text-xl font-bold text-gray-900">
                         {formatBytes(
-                            host.network.rx.length > 1 ? host.network.rx[host.network.rx.length - 1] || 0 : 0
+                            Object.values(host.network)
+                            .map(network => network.rx)
+                            .reduce((a: number[], b: number[]) => a.concat(b), [])
+                            .at(-1) || 0
+                            
                         )} IN
                     </span>
                 
@@ -744,6 +830,26 @@
             </table>
         </div>
 
+        {#if Object.keys(host.network).length > 0}
+            <hr class="border-gray-200 w-full" />
+
+            {#each Object.values(host.network) as network}
+                <div>
+                    {network.name}
+                </div>
+            {/each}
+
+        {/if}
+
+        {#if Object.keys(host.storage).length > 0}
+            <hr class="border-gray-200 w-full" />
+
+            {#each Object.values(host.storage) as storage}
+                <div>
+                    {storage.name}
+                </div>
+            {/each}
+        {/if}
     </div>
 
 {/if}

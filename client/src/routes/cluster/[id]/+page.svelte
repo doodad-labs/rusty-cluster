@@ -308,7 +308,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: host.cpuLoad.length }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
                                 },
                                 yAxis: {
@@ -384,7 +384,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: host.memory.used.length }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
                                 },
                                 yAxis: {
@@ -461,7 +461,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: host.network.tx.length }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
                                 },
                                 yAxis: {
@@ -533,7 +533,7 @@
                                 xAxis: {
                                     show: false, // Hide x-axis
                                     boundaryGap: false,
-                                    data: Array.from({ length: HISTORY_LENGTH }, () => ""), // Match last 50 data points
+                                    data: Array.from({ length: host.network.rx.length }, () => ""), // Match last 50 data points
                                     axisTick: { show: false },
                                 },
                                 yAxis: {

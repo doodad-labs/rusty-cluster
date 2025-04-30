@@ -186,8 +186,6 @@
             for (let i = 0; i < data.network.length; i++) {
                 const network = data.network[i];
 
-                console.log(network)
-
                 if (host.network[network.name] === undefined) {
                     host.network[network.name] = {
                         name: network.name,
@@ -238,7 +236,6 @@
 
             }
 
-
             for (let i = 0; i < data.storage.length; i++) {
                 const storage = data.storage[i];
 
@@ -259,7 +256,7 @@
             }
 
             /* 
-            Remove storage that is not in the data anymore, this is to prevent the UI from showing old data. 
+                Remove storage that is not in the data anymore, this is to prevent the UI from showing old data. 
             */
             for (let i = 0; i < host.storage.length; i++) {
                 const storage = host.storage[i];
@@ -281,7 +278,6 @@
                 }
 
             }
-
 
             host.storageStats.read.push(data.fsStats.read || 0);
             if (host.storageStats.read.length > HISTORY_LENGTH) {

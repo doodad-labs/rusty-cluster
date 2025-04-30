@@ -1,6 +1,7 @@
 import db from '$lib/server/database';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import argon2 from 'argon2';
 
 export const load: PageServerLoad = async ({ params }) => {
 
@@ -25,6 +26,10 @@ export const load: PageServerLoad = async ({ params }) => {
     }
 
 	return {
-		cluster
+		cluster: {
+            id: cluster.id,
+            address: cluster.address,
+            key: await argon2.hash(cluster.key)
+        }
 	};
 };

@@ -1,5 +1,6 @@
 import db from '$lib/server/database';
 import type { PageServerLoad } from './$types';
+import argon2 from 'argon2';
 
 export const load: PageServerLoad = async () => {
 
@@ -15,6 +16,12 @@ export const load: PageServerLoad = async () => {
     })
 
 	return {
-		clusters
+		clusters: clusters.map(async (cluster) => {
+            return {
+                id: cluster.id,
+                address: cluster.address,
+                key: await argon2.hash(cluster.key)
+            }
+        })
 	};
 };

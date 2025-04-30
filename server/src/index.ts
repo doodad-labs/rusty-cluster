@@ -3,20 +3,29 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import fs from 'fs/promises';
 import crypto from 'crypto';
+import argon2 from 'argon2';
 
 const filePath = 'key.rusty';
 
 (async () => {
     const key = await checkAndProcessFile(filePath).catch(err => console.error('Error:', err));
 
+    if (!key) {
+        console.error('Failed to generate or read the key.');
+        return;
+    }
+
     const server = createServer();
     const io = new Server(server);
 
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         const token = socket.handshake.auth.token; // Get the token from the handshake
-        console.log(socket.handshake.auth, token)
 
-        if (token === key) { // Compare with the key
+        if (!token) {
+            return next(new Error('Authentication error')); // No token provided
+        }
+        
+        if (await argon2.verify(token, key)) { // Compare with the key
             next(); // Token is valid, proceed to the connection
         } else {
             next(new Error('Authentication error')); // Optionally, you can send an error message

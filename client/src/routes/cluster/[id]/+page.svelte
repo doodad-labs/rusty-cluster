@@ -107,17 +107,9 @@
         }
     });
 
-    let showCharts = $state([
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-    ])
+    let showCharts: {
+        [key: string]: boolean;
+    } = $state({})
 
     onMount(() => {
         host.socket = io(data.cluster.address, {
@@ -365,14 +357,14 @@
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
                     onenterView={()=>{
-                        showCharts[1] = true
+                        showCharts['cpu_usage'] = true
                     }}
                     onexitView={()=>{
-                        showCharts[1] = false
+                        showCharts['cpu_usage'] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
         
-                    {#if showCharts[1]}
+                    {#if showCharts['cpu_usage']}
                         <Chart
                             class="absolute top-0 left-0 w-full h-full opacity-30"
                             {init}
@@ -441,14 +433,14 @@
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
                     onenterView={()=>{
-                        showCharts[2] = true
+                        showCharts['memory_usage'] = true
                     }}
                     onexitView={()=>{
-                        showCharts[2] = false
+                        showCharts['memory_usage'] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
 
-                    {#if showCharts[2]}
+                    {#if showCharts['memory_usage']}
                         <Chart
                             class="absolute top-0 left-0 w-full h-full opacity-30"
                             {init}
@@ -518,15 +510,15 @@
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
                     onenterView={()=>{
-                        showCharts[3] = true
+                        showCharts['total_network_out'] = true
                     }}
                     onexitView={()=>{
-                        showCharts[3] = false
+                        showCharts['total_network_out'] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
     
 
-                    {#if showCharts[3]}
+                    {#if showCharts['total_network_out']}
 
                         <Chart
                             class="absolute top-0 left-0 w-full h-full opacity-30"
@@ -596,14 +588,14 @@
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
                     onenterView={()=>{
-                        showCharts[4] = true
+                        showCharts['total_network_in'] = true
                     }}
                     onexitView={()=>{
-                        showCharts[4] = false
+                        showCharts['total_network_in'] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
         
-                    {#if showCharts[4]}
+                    {#if showCharts['total_network_in']}
                         <Chart
                             class="absolute top-0 left-0 w-full h-full opacity-30"
                             {init}
@@ -672,19 +664,19 @@
                 <div 
                     use:inViewAction={{ threshold: 0.2, trackExit: true }}
                     onenterView={()=>{
-                        showCharts[5] = true
+                        showCharts['total_storage'] = true
                     }}
                     onexitView={()=>{
-                        showCharts[5] = false
+                        showCharts['total_storage'] = false
                     }}
                     class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
     
-                    {#if showCharts[5]}
+                    {#if showCharts['total_storage']}
                         <div class="absolute w-full h-full">
                             <div 
                                 class="bg-red-400/10 border-t border-red-400/60 absolute bottom-0 left-0 w-full"
                                 style="height: {
-                                    ((host.storage.reduce((acc, storage) => acc + storage.used, 0) || 0) / (host.storage.reduce((acc, storage) => acc + storage.size, 0) || 0)) * 100
+                                    ((Object.values(host.storage).reduce((acc, storage) => acc + storage.used, 0) || 0) / (Object.values(host.storage).reduce((acc, storage) => acc + storage.size, 0) || 0)) * 100
                                 }%;"
                             ></div>
                         </div>
@@ -692,11 +684,11 @@
 
                     <span class="text-xl font-bold text-gray-900">
                         {formatBytes(
-                            host.storage.reduce((acc, storage) => acc + storage.used, 0) || 0
+                            Object.values(host.storage).reduce((acc, storage) => acc + storage.used, 0) || 0
                         )}
                         /
                         {formatBytes(
-                            host.storage.reduce((acc, storage) => acc + storage.size, 0) || 0
+                            Object.values(host.storage).reduce((acc, storage) => acc + storage.size, 0) || 0
                         )}
                     </span>
                 
@@ -710,15 +702,15 @@
         <div 
             use:inViewAction={{ threshold: 0.2, trackExit: true }}
             onenterView={()=>{
-                showCharts[0] = true
+                showCharts['core_usage'] = true
             }}
             onexitView={()=>{
-                showCharts[0] = false
+                showCharts['core_usage'] = false
             }}
             class="flex flex-col gap-4 w-full border bg-white border-gray-200 rounded-md p-4">
             
             <div class="h-40">
-                {#if showCharts[0]}
+                {#if showCharts['core_usage']}
                     <Chart
                         {init}
                         options={{
@@ -829,10 +821,229 @@
         {#if Object.keys(host.network).length > 0}
             <hr class="border-gray-200 w-full" />
 
-            {#each Object.values(host.network) as network}
-                <div>
+            {#each Object.values(host.network) as network, i}
+                <h2>
                     {network.name}
+                </h2>
+
+                <div class="grid sm:grid-cols-2 md:grid-cols-3 place-items-center gap-4 w-full">
+                    <!-- Network Speed -->
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <span class="text-sm text-black/50">
+                            Network Speed
+                        </span>
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                showCharts[`network_speed_${i}`] = true
+                            }}
+                            onexitView={(e)=>{
+                                showCharts[`network_speed_${i}`] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if showCharts[`network_speed_${i}`]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: network.ms.length }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...network.ms) + (Math.max(...network.ms) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: network.ms,
+                                                color: "#0d3f89", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+            
+                            <span class="text-xl font-bold text-gray-900">
+                                {(network.ms.length > 1 ? network.ms[network.ms.length - 1] : 0).toFixed(0) } ms
+                            </span>
+                        
+                        </div>
+                    </div>  
+
+                    <!-- Network out -->
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <span class="text-sm text-black/50">
+                            Network Out
+                        </span>
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={()=>{
+                                showCharts[`network_out_${i}`] = true
+                            }}
+                            onexitView={()=>{
+                                showCharts[`network_out_${i}`] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+            
+
+                            {#if showCharts[`network_out_${i}`]}
+
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: network.tx.length || 0 }, () => ""),
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...network.tx) + (Math.max(...network.tx) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: network.tx,
+                                                color: "#04aaf7", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(
+                                    network.tx.at(-1) || 0
+                                )} OUT
+                            </span>
+                        
+                        </div> 
+                    </div> 
+            
+                    <!-- Network in -->
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <span class="text-sm text-black/50">
+                            Network In
+                        </span>
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={()=>{
+                                showCharts[`network_in_${i}`] = true
+                            }}
+                            onexitView={()=>{
+                                showCharts[`network_in_${i}`] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                
+                            {#if showCharts[`network_in_${i}`]}
+                                <Chart
+                                    class="absolute top-0 left-0 w-full h-full opacity-30"
+                                    {init}
+                                    options={{
+                                        xAxis: {
+                                            show: false, // Hide x-axis
+                                            boundaryGap: false,
+                                            data: Array.from({ length: network.rx.length || 0 }, () => ""), // Match last 50 data points
+                                            axisTick: { show: false },
+                                        },
+                                        yAxis: {
+                                            type: "value",
+                                            axisLabel: {
+                                                formatter: "{value} %",
+                                            },
+                                            axisTick: { show: false }, // Hide y-axis ticks
+                                            show: false, // Hide y-axis
+                                            min: 0, // Fix baseline at 0 for consistency
+                                            max: Math.max(...network.rx) + (Math.max(...network.rx) / 5),
+                                        },
+                                        grid: {
+                                            top: 5, // Minimal padding
+                                            right: 0,
+                                            bottom: 2,
+                                            left: 0,
+                                        },
+                                        series: [
+                                            {
+                                                data: network.rx,
+                                                color: "#dd30cc", // Use a function to get the color
+                                                type: "line",
+                                                symbol: "none", // No data points
+                                                lineStyle: {
+                                                    width: 1.2, // Slightly thicker line
+                                                },
+                                                areaStyle: {
+                                                    opacity: 0.15, // Subtle fill
+                                                },
+                                                smooth: 0, // Mild smoothing (0 to 1)
+                                            }
+                                        ],
+                                        tooltip: { show: false }, // Disable tooltips
+                                        animation: false, // Avoid distracting animation
+                                    }}
+                                />
+                            {/if}
+
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(
+                                    network.rx.at(-1) || 0
+                                )} IN
+                            </span>
+                        
+                        </div>
+                    </div>
                 </div>
+
             {/each}
 
         {/if}
@@ -840,11 +1051,45 @@
         {#if Object.keys(host.storage).length > 0}
             <hr class="border-gray-200 w-full" />
 
-            {#each Object.values(host.storage) as storage}
-                <div>
-                    {storage.name}
-                </div>
-            {/each}
+            <div class="grid {Object.keys(host.storage).length >= 2 ? 'sm:grid-cols-2' : ''} {Object.keys(host.storage).length >= 3 ? 'md:grid-cols-3' : ''} {Object.keys(host.storage).length >= 4 ? 'lg:grid-cols-4' : ''} place-items-center w-full gap-4">
+                {#each Object.values(host.storage) as storage, i}
+                    <!-- Storage -->
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <span class="text-sm text-black/50">
+                            {storage.name}
+                        </span>
+                        <div 
+                            use:inViewAction={{ threshold: 0.2, trackExit: true }}
+                            onenterView={(e)=>{
+                                showCharts[`storage_${i}`] = true
+                            }}
+                            onexitView={(e)=>{
+                                showCharts[`storage_${i}`] = false
+                            }}
+                            class="flex justify-center place-items-center relative w-full h-23 border bg-white border-gray-200 rounded-md">
+                        
+                            {#if showCharts[`storage_${i}`]}
+                                <div class="absolute w-full h-full">
+                                    <div 
+                                        class="bg-red-400/10 border-t border-red-400/60 absolute bottom-0 left-0 w-full"
+                                        style="height: {
+                                            ((storage.used || 0) / (storage.size || 0)) * 100
+                                        }%;"
+                                    ></div>
+                                </div>
+                            {/if}
+
+                            <span class="text-xl font-bold text-gray-900">
+                                {formatBytes(storage.used || 0)} 
+                                /
+                                {formatBytes(storage.size || 0)} 
+                            </span>
+                        
+                        </div>
+                    </div>
+
+                {/each}
+            </div>
         {/if}
     </div>
 

@@ -49,11 +49,15 @@ const filePath = 'key.rusty';
                 free: mem.free,
             },
             network: networkStats.map((net) => ({
+                name: net.iface,
                 speed: net.ms,
                 rx_sec: net.rx_sec,
                 tx_sec: net.tx_sec,
             })),
             storage: fsSize.map((disk) => ({
+                name: disk.fs,
+                type: disk.type,
+                mount: disk.mount,
                 size: disk.size,
                 used: disk.used,
                 available: disk.available,

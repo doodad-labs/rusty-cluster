@@ -258,6 +258,8 @@
 
 <div class="flex flex-col gap-6 place-items-center w-full max-w-[1128px] mx-auto pt-4">
 
+    <!-- Combined Metrics -->
+
     <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 place-items-center gap-4 w-full">
         
         <!-- CPU Usage -->

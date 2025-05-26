@@ -2,7 +2,7 @@
   "dependencies": {
     "argon2": "^0.43.0",
     "socket.io": "^4.8.1",
-    "systeminformation": "^5.25.11"
+    "systeminformation": "^5.27.1"
   },
   "scripts": {
     "build": "tsc",

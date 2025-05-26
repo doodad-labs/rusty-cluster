@@ -12,7 +12,7 @@
     "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
     "@babel/preset-typescript": "^7.27.0",
-    "@types/node": "^22.15.2",
+    "@types/node": "^22.15.21",
     "typescript": "^5.8.3"
   }
 }
